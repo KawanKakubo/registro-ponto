@@ -25,9 +25,22 @@ Route::resource('departments', DepartmentController::class);
 // Colaboradores
 Route::resource('employees', EmployeeController::class);
 
+// Templates de Jornada
+Route::prefix('work-shift-templates')->name('work-shift-templates.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\WorkShiftTemplateController::class, 'index'])->name('index');
+    Route::get('/create', [\App\Http\Controllers\WorkShiftTemplateController::class, 'create'])->name('create');
+    Route::post('/', [\App\Http\Controllers\WorkShiftTemplateController::class, 'store'])->name('store');
+    Route::get('/{template}/edit', [\App\Http\Controllers\WorkShiftTemplateController::class, 'edit'])->name('edit');
+    Route::put('/{template}', [\App\Http\Controllers\WorkShiftTemplateController::class, 'update'])->name('update');
+    Route::delete('/{template}', [\App\Http\Controllers\WorkShiftTemplateController::class, 'destroy'])->name('destroy');
+    Route::get('/bulk-assign', [\App\Http\Controllers\WorkShiftTemplateController::class, 'bulkAssignForm'])->name('bulk-assign');
+    Route::post('/bulk-assign', [\App\Http\Controllers\WorkShiftTemplateController::class, 'bulkAssignStore'])->name('bulk-assign.store');
+});
+
 // Horários de Trabalho (nested routes)
 Route::prefix('employees/{employee}')->name('employees.')->group(function () {
     Route::get('/work-schedules', [WorkScheduleController::class, 'index'])->name('work-schedules.index');
+    Route::post('/work-schedules/apply-template', [WorkScheduleController::class, 'applyTemplate'])->name('work-schedules.apply-template');
     Route::get('/work-schedules/create', [WorkScheduleController::class, 'create'])->name('work-schedules.create');
     Route::post('/work-schedules', [WorkScheduleController::class, 'store'])->name('work-schedules.store');
     Route::get('/work-schedules/{workSchedule}/edit', [WorkScheduleController::class, 'edit'])->name('work-schedules.edit');

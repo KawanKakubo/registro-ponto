@@ -22,12 +22,6 @@ class WorkSchedule extends Model
     ];
 
     protected $casts = [
-        'entry_1' => 'datetime:H:i:s',
-        'exit_1' => 'datetime:H:i:s',
-        'entry_2' => 'datetime:H:i:s',
-        'exit_2' => 'datetime:H:i:s',
-        'entry_3' => 'datetime:H:i:s',
-        'exit_3' => 'datetime:H:i:s',
         'effective_from' => 'date',
         'effective_until' => 'date',
     ];

@@ -16,6 +16,7 @@
                         <a href="{{ route('establishments.index') }}" class="hover:bg-blue-700 px-3 py-2 rounded">Estabelecimentos</a>
                         <a href="{{ route('departments.index') }}" class="hover:bg-blue-700 px-3 py-2 rounded">Departamentos</a>
                         <a href="{{ route('employees.index') }}" class="hover:bg-blue-700 px-3 py-2 rounded">Colaboradores</a>
+                        <a href="{{ route('work-shift-templates.index') }}" class="hover:bg-blue-700 px-3 py-2 rounded">📋 Jornadas</a>
                         <a href="{{ route('afd-imports.index') }}" class="hover:bg-blue-700 px-3 py-2 rounded">Importar AFD</a>
                         <a href="{{ route('timesheets.index') }}" class="hover:bg-blue-700 px-3 py-2 rounded">Cartão de Ponto</a>
                     </div>

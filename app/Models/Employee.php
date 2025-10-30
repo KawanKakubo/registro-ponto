@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Employee extends Model
 {
@@ -54,6 +55,32 @@ class Employee extends Model
     public function timeRecords(): HasMany
     {
         return $this->hasMany(TimeRecord::class);
+    }
+
+    /**
+     * Relacionamento com atribuições de jornada
+     */
+    public function workShiftAssignments(): HasMany
+    {
+        return $this->hasMany(EmployeeWorkShiftAssignment::class);
+    }
+
+    /**
+     * Retorna a atribuição de jornada atual (ativa)
+     */
+    public function currentWorkShiftAssignment(): HasOne
+    {
+        return $this->hasOne(EmployeeWorkShiftAssignment::class)
+            ->active()
+            ->latest('effective_from');
+    }
+
+    /**
+     * Verifica se o colaborador tem uma jornada atribuída
+     */
+    public function hasWorkShift(): bool
+    {
+        return $this->currentWorkShiftAssignment()->exists();
     }
 
     /**
