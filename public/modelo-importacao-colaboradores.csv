@@ -1,0 +1,3 @@
+nome_completo,cpf,pis_pasep,email,telefone,estabelecimento,departamento,cargo,data_admissao,salario,status
+João da Silva,12345678901,12345678901,joao.silva@example.com,11999999999,Matriz,Recursos Humanos,Analista de RH,2024-01-15,5000.00,ativo
+Maria Santos,98765432100,98765432100,maria.santos@example.com,11988888888,Filial Sul,Tecnologia da Informação,Desenvolvedora,2024-02-01,8000.00,ativo
