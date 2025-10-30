@@ -32,12 +32,27 @@ class HenrySuperFacilParser extends BaseAfdParser
             $lineCount = 0;
             $hasType3 = false;
             $hasCompactDate = false;
+            $prismaCharacteristics = 0; // Contador de características do Prisma
+            $superFacilMatches = 0; // Contador de matches Super Fácil
 
-            while (($line = fgets($handle)) !== false && $lineCount < 100) {
+            while (($line = fgets($handle)) !== false && $lineCount < 150) {
                 $line = trim($line);
                 if (empty($line) || strlen($line) < 30) {
                     $lineCount++;
                     continue;
+                }
+
+                // IMPORTANTE: Detectar características do Prisma para rejeitar
+                // Prisma tem linhas curtas (~39 chars) terminando com checksum hex contendo letras
+                if (strlen($line) >= 37 && strlen($line) <= 41) {
+                    $lastChars = strtoupper(substr($line, -4));
+                    if (ctype_xdigit($lastChars)) {
+                        $letterCount = strlen(preg_replace('/[0-9]/', '', $lastChars));
+                        if ($letterCount >= 2) {
+                            // Tem forte característica de Prisma
+                            $prismaCharacteristics++;
+                        }
+                    }
                 }
 
                 // NSR (9 dígitos) + tipo (1) + data compacta (12: ddmmyyyyHHMM)
@@ -55,8 +70,7 @@ class HenrySuperFacilParser extends BaseAfdParser
                             // PIS na sequência (12 dígitos)
                             $possiblePis = substr($line, 22, 12);
                             if (is_numeric($possiblePis)) {
-                                fclose($handle);
-                                return true;
+                                $superFacilMatches++;
                             }
                         }
                     }
@@ -67,8 +81,7 @@ class HenrySuperFacilParser extends BaseAfdParser
                         if (is_numeric($dateStr) && strlen($dateStr) === 12) {
                             $action = substr($line, 22, 1);
                             if (in_array($action, ['I', 'A'])) {
-                                fclose($handle);
-                                return true;
+                                $superFacilMatches++;
                             }
                         }
                     }
@@ -76,6 +89,15 @@ class HenrySuperFacilParser extends BaseAfdParser
                 
                 $lineCount++;
             }
+
+            fclose($handle);
+
+            // Se tem muitas características Prisma (>10) e poucas do Super Fácil, rejeita
+            if ($prismaCharacteristics > 10 && $superFacilMatches < 5) {
+                return false;
+            }
+            
+            return $hasType3 && $hasCompactDate && $superFacilMatches > 0;
 
             fclose($handle);
             return $hasType3 && $hasCompactDate;

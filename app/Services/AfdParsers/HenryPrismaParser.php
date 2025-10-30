@@ -31,57 +31,57 @@ class HenryPrismaParser extends BaseAfdParser
 
             $lineCount = 0;
             $prismaLineCount = 0;
-            $avgLength = 0;
-            $totalLength = 0;
+            $relevantLineCount = 0; // Conta apenas linhas relevantes (não headers)
 
-            while (($line = fgets($handle)) !== false && $lineCount < 100) {
+            while (($line = fgets($handle)) !== false && $lineCount < 200) {
                 $line = trim($line);
+                $lineCount++;
+                
                 if (empty($line) || strlen($line) < 25) {
-                    $lineCount++;
                     continue;
                 }
 
-                $totalLength += strlen($line);
+                // Pula headers e linhas muito longas (>100 chars)
+                // Focamos apenas nas linhas de marcação de ponto
+                if (strlen($line) > 100) {
+                    continue;
+                }
+
+                $relevantLineCount++;
 
                 // Prisma tem características MUITO específicas:
-                // 1. Comprimento médio das linhas: 38-40 caracteres
-                // 2. Termina com 4 caracteres hex com LETRAS (não apenas números)
-                // 3. Checksum contém letras maiúsculas A-F
+                // 1. Linhas curtas de exatamente 38-40 caracteres
+                // 2. Termina com 4 caracteres hex (checksum)
+                // 3. Checksum frequentemente contém letras A-F
                 
-                // Verifica checksum hex (últimos 4)
-                $lastChars = strtoupper(substr($line, -4));
-                if (ctype_xdigit($lastChars)) {
-                    // Conta quantas letras tem no checksum
-                    $letterCount = strlen(preg_replace('/[0-9]/', '', $lastChars));
+                // Verifica se tem comprimento típico do Prisma
+                if (strlen($line) >= 37 && strlen($line) <= 41) {
+                    // Verifica checksum hex (últimos 4 caracteres)
+                    $lastChars = strtoupper(substr($line, -4));
                     
-                    // Prisma pode ter ou não letras, mas tem comprimento específico
-                    // Verifica comprimento da linha (Prisma é ~38-39)
-                    if (strlen($line) >= 37 && strlen($line) <= 40) {
-                        // Prisma tende a ter checksum com letras (mas não é obrigatório)
+                    if (ctype_xdigit($lastChars)) {
+                        // Conta quantas letras tem no checksum
+                        $letterCount = strlen(preg_replace('/[0-9]/', '', $lastChars));
+                        
+                        // Prisma tem checksums com letras A-F frequentemente
                         if ($letterCount >= 1) {
-                            $prismaLineCount += 2; // Peso maior para linhas com letras
+                            $prismaLineCount += 3; // Peso alto para linhas com letras no checksum
                         } else {
-                            $prismaLineCount += 1; // Peso menor para linhas sem letras
+                            $prismaLineCount += 1; // Peso baixo para linhas sem letras
                         }
                     }
                 }
-                
-                $lineCount++;
             }
 
             fclose($handle);
             
-            if ($lineCount > 0) {
-                $avgLength = $totalLength / $lineCount;
-                // Prisma tem linhas médias de ~36-39 caracteres
-                // Super Fácil tem linhas médias de ~35 caracteres
-                $hasRightLength = $avgLength >= 36 && $avgLength <= 40;
+            if ($relevantLineCount > 10) {
+                // Score baseado apenas em linhas relevantes
+                $score = $prismaLineCount / ($relevantLineCount * 3);
                 
-                // Calculamos um score ponderado
-                $score = $prismaLineCount / ($lineCount * 2); // Normaliza considerando peso
-                
-                // Se tem comprimento certo E score > 0.5, é Prisma
-                return $hasRightLength && $score > 0.5;
+                // Se mais de 40% das linhas têm características Prisma, consideramos Prisma
+                // (ajustado de 0.5 para 0.4 para melhor detecção)
+                return $score > 0.4;
             }
             
             return false;
@@ -128,10 +128,23 @@ class HenryPrismaParser extends BaseAfdParser
                 return;
             }
 
-            // Data: primeiros 8 dígitos (ddmmyyyy)
-            $dateStr = substr($dataWithoutChecksum, 0, 8);
-            // Hora: próximos 4 dígitos (HHMM)
-            $timeStr = substr($dataWithoutChecksum, 8, 4);
+            // Formato: NSR(9) + Tipo(1) + Data(8) + Hora(4) + PIS(11) + Checksum(4)
+            // NSR: primeiros 9 dígitos
+            $nsr = substr($dataWithoutChecksum, 0, 9);
+            
+            // Tipo de registro (posição 9)
+            $recordType = substr($dataWithoutChecksum, 9, 1);
+            
+            // Se não for tipo 3 (marcação de ponto), pula
+            if ($recordType !== '3') {
+                $this->skippedCount++;
+                return;
+            }
+            
+            // Data: 8 dígitos após NSR e tipo (posição 10-17)
+            $dateStr = substr($dataWithoutChecksum, 10, 8);
+            // Hora: 4 dígitos (posição 18-21)
+            $timeStr = substr($dataWithoutChecksum, 18, 4);
             
             if (!is_numeric($dateStr) || !is_numeric($timeStr)) {
                 $this->skippedCount++;
@@ -155,17 +168,20 @@ class HenryPrismaParser extends BaseAfdParser
                 return;
             }
 
-            // PIS: próximos 11 dígitos após data/hora
-            $pisRaw = substr($dataWithoutChecksum, 12, 11);
+            // PIS: 12 dígitos após data/hora (posição 22-33)
+            // Formato Henry Prisma SEMPRE usa 12 dígitos, com zero à esquerda quando necessário
+            // Extraímos 12 dígitos e pegamos os últimos 11 (o PIS real)
+            $pisRaw = substr($dataWithoutChecksum, 22, 12);
             
             if (!is_numeric($pisRaw)) {
                 $this->skippedCount++;
                 return;
             }
 
-            $pis = $this->normalizePis($pisRaw);
+            // PIS real são os últimos 11 dígitos (ignora o primeiro que é padding)
+            $pis = substr($pisRaw, 1, 11);
             
-            if (!$pis) {
+            if (!is_numeric($pis) || strlen($pis) != 11) {
                 $this->addError("Linha {$lineNumber}: PIS inválido '{$pisRaw}'");
                 $this->skippedCount++;
                 return;
@@ -180,8 +196,8 @@ class HenryPrismaParser extends BaseAfdParser
                 return;
             }
 
-            $nsr = str_pad($lineNumber, 9, '0', STR_PAD_LEFT);
-            $this->createTimeRecord($employee, $recordedAt, $nsr, 'PR');
+            // Usa o NSR real do arquivo
+            $this->createTimeRecord($employee, $recordedAt, $nsr, '3');
 
         } catch (\Exception $e) {
             $this->addError("Linha {$lineNumber}: " . $e->getMessage());

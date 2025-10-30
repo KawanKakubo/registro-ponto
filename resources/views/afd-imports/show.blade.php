@@ -17,6 +17,13 @@
                 {{ ucfirst($afdImport->status) }}
             </span>
         </div>
+        @if($afdImport->format_type)
+        <div><strong>Modelo do Relógio:</strong> 
+            <span class="px-2 py-1 rounded text-sm bg-blue-100 text-blue-800 font-medium">
+                {{ $afdImport->format_type }}
+            </span>
+        </div>
+        @endif
         <div><strong>Data da Importação:</strong> {{ $afdImport->imported_at?->format('d/m/Y H:i:s') ?? $afdImport->created_at->format('d/m/Y H:i:s') }}</div>
         <div><strong>Tamanho do Arquivo:</strong> {{ number_format($afdImport->file_size / 1024, 2) }} KB</div>
         <div><strong>Total de Registros:</strong> {{ $afdImport->total_records ?? 0 }}</div>
