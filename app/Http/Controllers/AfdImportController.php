@@ -56,7 +56,7 @@ class AfdImportController extends Controller
                 'file_name' => $fileName,
                 'file_path' => $filePath,
                 'file_size' => $fileSize,
-                'status' => 'pending',
+                'status' => 'processing',
                 'imported_by' => auth()->id(),
                 'imported_at' => now(),
             ]);

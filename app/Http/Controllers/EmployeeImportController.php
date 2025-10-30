@@ -59,9 +59,20 @@ class EmployeeImportController extends Controller
      */
     public function upload(Request $request)
     {
-        $request->validate([
-            'csv_file' => 'required|file|mimes:csv,txt|max:5120',
-        ]);
+        try {
+            $validated = $request->validate([
+                'csv_file' => 'required|file|mimes:csv,txt|max:5120',
+            ], [
+                'csv_file.required' => 'Por favor, selecione um arquivo CSV.',
+                'csv_file.file' => 'O arquivo enviado é inválido.',
+                'csv_file.mimes' => 'O arquivo deve ser do tipo CSV ou TXT.',
+                'csv_file.max' => 'O arquivo não pode ter mais de 5MB.',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->route('employee-imports.create')
+                ->withErrors($e->validator)
+                ->withInput();
+        }
 
         try {
             $file = $request->file('csv_file');
@@ -99,6 +110,9 @@ class EmployeeImportController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Erro no upload de CSV: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            
             return redirect()->route('employee-imports.create')
                 ->with('error', 'Erro durante o upload: ' . $e->getMessage());
         }
@@ -144,6 +158,9 @@ class EmployeeImportController extends Controller
         $handle = fopen($filePath, 'r');
         $header = fgetcsv($handle, 1000, ',');
         
+        // Limpar espaços em branco do cabeçalho
+        $header = array_map('trim', $header);
+        
         $lineNumber = 1;
         $sampleCount = 0;
 
@@ -152,15 +169,28 @@ class EmployeeImportController extends Controller
             $preview['total_rows']++;
 
             try {
+                // Limpar espaços em branco dos valores
+                $row = array_map('trim', $row);
                 $data = array_combine($header, $row);
                 
+                // Limpar CPF e PIS antes de validar
+                if (isset($data['cpf'])) {
+                    $data['cpf_cleaned'] = preg_replace('/[^0-9]/', '', $data['cpf']);
+                }
+                if (isset($data['pis_pasep'])) {
+                    $data['pis_cleaned'] = preg_replace('/[^0-9]/', '', $data['pis_pasep']);
+                }
+                
                 $validator = Validator::make($data, [
-                    'cpf' => 'required|string|size:14',
+                    'cpf' => 'required|string',
+                    'cpf_cleaned' => 'required|string|size:11',
                     'full_name' => 'required|string|max:255',
-                    'pis_pasep' => 'required|string|size:14',
+                    'pis_pasep' => 'required|string',
+                    'pis_cleaned' => 'required|string|size:11',
                     'establishment_id' => 'required|exists:establishments,id',
-                    'department_id' => 'required|exists:departments,id',
+                    'department_id' => 'nullable|exists:departments,id',
                     'admission_date' => 'required|date',
+                    'role' => 'nullable|string|max:255',
                 ]);
 
                 if ($validator->fails()) {
@@ -174,8 +204,8 @@ class EmployeeImportController extends Controller
                 } else {
                     $preview['valid_rows']++;
                     
-                    // Verificar se colaborador já existe
-                    $exists = \App\Models\Employee::where('cpf', $data['cpf'])->exists();
+                    // Verificar se colaborador já existe (buscar pelo CPF limpo)
+                    $exists = \App\Models\Employee::where('cpf', $data['cpf_cleaned'])->exists();
                     if ($exists) {
                         $preview['existing_employees']++;
                     } else {

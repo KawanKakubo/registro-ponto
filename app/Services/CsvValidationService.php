@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
+use App\Models\Establishment;
+use App\Models\Department;
+use App\Models\Employee;
 
 class CsvValidationService
 {
@@ -19,60 +21,80 @@ class CsvValidationService
         $this->validRows = [];
         $this->invalidRows = [];
 
+        // Cache dos IDs válidos
+        $validEstablishments = Establishment::pluck('id')->toArray();
+        $validDepartments = Department::pluck('id')->toArray();
+        $existingCpfs = Employee::pluck('cpf')->toArray();
+        $existingPis = Employee::whereNotNull('pis_pasep')->pluck('pis_pasep')->toArray();
+
         foreach ($rows as $index => $row) {
             $lineNumber = $index + 2; // +2 porque linha 1 é cabeçalho e array começa em 0
+            $lineErrors = [];
             
+            // Validar campos obrigatórios
             $validator = Validator::make($row, [
-                'nome_completo' => 'required|string|max:255',
-                'cpf' => 'required|string|size:11|regex:/^\d{11}$/',
-                'pis_pasep' => 'required|string|size:11|regex:/^\d{11}$/',
-                'email' => 'nullable|email|max:255',
-                'telefone' => 'nullable|string|max:20',
-                'estabelecimento' => 'required|string|max:255',
-                'departamento' => 'required|string|max:255',
-                'cargo' => 'nullable|string|max:255',
-                'data_admissao' => 'required|date_format:Y-m-d',
-                'salario' => 'nullable|numeric|min:0',
-                'status' => 'required|in:ativo,inativo',
+                'cpf' => 'required|string',
+                'full_name' => 'required|string|max:255',
+                'pis_pasep' => 'required|string',
+                'establishment_id' => 'required|integer',
+                'department_id' => 'nullable|integer',
+                'admission_date' => 'required|date_format:Y-m-d',
+                'role' => 'nullable|string|max:255',
             ], [
-                'nome_completo.required' => 'O nome completo é obrigatório',
-                'cpf.required' => 'O CPF é obrigatório',
-                'cpf.size' => 'O CPF deve ter 11 dígitos',
-                'cpf.regex' => 'O CPF deve conter apenas números',
-                'pis_pasep.required' => 'O PIS/PASEP é obrigatório',
-                'pis_pasep.size' => 'O PIS/PASEP deve ter 11 dígitos',
-                'pis_pasep.regex' => 'O PIS/PASEP deve conter apenas números',
-                'email.email' => 'O email deve ser válido',
-                'estabelecimento.required' => 'O estabelecimento é obrigatório',
-                'departamento.required' => 'O departamento é obrigatório',
-                'data_admissao.required' => 'A data de admissão é obrigatória',
-                'data_admissao.date_format' => 'A data de admissão deve estar no formato YYYY-MM-DD',
-                'status.required' => 'O status é obrigatório',
-                'status.in' => 'O status deve ser "ativo" ou "inativo"',
+                'cpf.required' => 'CPF é obrigatório',
+                'full_name.required' => 'Nome completo é obrigatório',
+                'pis_pasep.required' => 'PIS/PASEP é obrigatório',
+                'establishment_id.required' => 'ID do estabelecimento é obrigatório',
+                'establishment_id.integer' => 'ID do estabelecimento deve ser um número',
+                'department_id.integer' => 'ID do departamento deve ser um número',
+                'admission_date.required' => 'Data de admissão é obrigatória',
+                'admission_date.date_format' => 'Data de admissão deve estar no formato YYYY-MM-DD',
             ]);
 
             if ($validator->fails()) {
+                $lineErrors = array_merge($lineErrors, $validator->errors()->all());
+            } else {
+                // Limpar e validar CPF
+                $cpf = preg_replace('/[^0-9]/', '', $row['cpf']);
+                if (strlen($cpf) != 11) {
+                    $lineErrors[] = 'CPF deve ter 11 dígitos';
+                } elseif (!$this->validarCPF($cpf)) {
+                    $lineErrors[] = 'CPF inválido';
+                } elseif (in_array($cpf, $existingCpfs)) {
+                    $this->warnings[] = "Linha {$lineNumber}: CPF {$cpf} já existe no sistema (será atualizado)";
+                }
+
+                // Limpar e validar PIS/PASEP
+                $pis = preg_replace('/[^0-9]/', '', $row['pis_pasep']);
+                if (strlen($pis) != 11) {
+                    $lineErrors[] = 'PIS/PASEP deve ter 11 dígitos';
+                } elseif (in_array($pis, $existingPis)) {
+                    $this->warnings[] = "Linha {$lineNumber}: PIS/PASEP {$pis} já existe no sistema (será atualizado)";
+                }
+
+                // Validar establishment_id
+                if (!in_array((int)$row['establishment_id'], $validEstablishments)) {
+                    $lineErrors[] = "Estabelecimento ID {$row['establishment_id']} não existe";
+                }
+
+                // Validar department_id (se fornecido)
+                if (!empty($row['department_id']) && !in_array((int)$row['department_id'], $validDepartments)) {
+                    $lineErrors[] = "Departamento ID {$row['department_id']} não existe";
+                }
+            }
+
+            if (count($lineErrors) > 0) {
                 $this->invalidRows[] = [
                     'line' => $lineNumber,
                     'data' => $row,
-                    'errors' => $validator->errors()->all(),
+                    'errors' => $lineErrors,
                 ];
-                $this->errors[] = "Linha {$lineNumber}: " . implode(', ', $validator->errors()->all());
+                $this->errors[] = "Linha {$lineNumber}: " . implode(', ', $lineErrors);
             } else {
-                // Validar CPF
-                if (!$this->validarCPF($row['cpf'])) {
-                    $this->invalidRows[] = [
-                        'line' => $lineNumber,
-                        'data' => $row,
-                        'errors' => ['CPF inválido'],
-                    ];
-                    $this->errors[] = "Linha {$lineNumber}: CPF inválido";
-                } else {
-                    $this->validRows[] = [
-                        'line' => $lineNumber,
-                        'data' => $row,
-                    ];
-                }
+                $this->validRows[] = [
+                    'line' => $lineNumber,
+                    'data' => $row,
+                ];
             }
         }
 

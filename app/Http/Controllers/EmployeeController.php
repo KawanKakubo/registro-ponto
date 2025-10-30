@@ -32,6 +32,14 @@ class EmployeeController extends Controller
             });
         }
 
+        // Filtro por registros incompletos
+        if ($request->filled('incomplete') && $request->incomplete == '1') {
+            $query->where(function($q) {
+                $q->whereNull('department_id')
+                  ->orWhereNull('position');
+            });
+        }
+
         $employees = $query->orderBy('full_name')->paginate(50);
         $establishments = Establishment::orderBy('trade_name')->get();
         $departments = Department::orderBy('name')->get();

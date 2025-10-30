@@ -27,9 +27,17 @@ class AfdParserService
         $this->skippedCount = 0;
 
         try {
-            if (!file_exists($filePath)) {
-                throw new \Exception("Arquivo não encontrado: {$filePath}");
+            // Converter para caminho absoluto se necessário
+            $fullPath = str_starts_with($filePath, '/') ? $filePath : storage_path('app/' . $filePath);
+            
+            if (!file_exists($fullPath)) {
+                throw new \Exception("Arquivo não encontrado: {$fullPath} (path original: {$filePath})");
             }
+            
+            Log::info("AFD Parser: Arquivo encontrado em {$fullPath}");
+            
+            // Usar o caminho completo daqui em diante
+            $filePath = $fullPath;
 
             $handle = fopen($filePath, 'r');
             if (!$handle) {

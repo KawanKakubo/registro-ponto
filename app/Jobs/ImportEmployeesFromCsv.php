@@ -80,6 +80,9 @@ class ImportEmployeesFromCsv implements ShouldQueue
         $handle = fopen($filePath, 'r');
         $header = fgetcsv($handle, 1000, ',');
         
+        // Limpar espaços em branco do cabeçalho
+        $header = array_map('trim', $header);
+        
         $lineNumber = 1;
 
         while (($row = fgetcsv($handle, 1000, ',')) !== false) {
@@ -87,15 +90,21 @@ class ImportEmployeesFromCsv implements ShouldQueue
             $results['total']++;
 
             try {
+                // Limpar espaços em branco dos valores
+                $row = array_map('trim', $row);
                 $data = array_combine($header, $row);
+                
+                // Limpar CPF e PIS
+                $data['cpf'] = preg_replace('/[^0-9]/', '', $data['cpf']);
+                $data['pis_pasep'] = preg_replace('/[^0-9]/', '', $data['pis_pasep']);
                 
                 // Validar dados
                 $validator = Validator::make($data, [
-                    'cpf' => 'required|string|size:14',
+                    'cpf' => 'required|string|size:11',
                     'full_name' => 'required|string|max:255',
-                    'pis_pasep' => 'required|string|size:14',
+                    'pis_pasep' => 'required|string|size:11',
                     'establishment_id' => 'required|exists:establishments,id',
-                    'department_id' => 'required|exists:departments,id',
+                    'department_id' => 'nullable|exists:departments,id',
                     'admission_date' => 'required|date',
                     'role' => 'nullable|string|max:255',
                 ]);
@@ -118,21 +127,22 @@ class ImportEmployeesFromCsv implements ShouldQueue
                         'full_name' => $data['full_name'],
                         'pis_pasep' => $data['pis_pasep'],
                         'establishment_id' => $data['establishment_id'],
-                        'department_id' => $data['department_id'],
+                        'department_id' => $data['department_id'] ?: $employee->department_id,
                         'admission_date' => $data['admission_date'],
-                        'role' => $data['role'] ?? null,
+                        'position' => $data['role'] ?: $employee->position,
                     ]);
                     $results['updated']++;
                 } else {
-                    // Criar novo colaborador
+                    // Criar novo colaborador com status padrão 'active'
                     Employee::create([
                         'cpf' => $data['cpf'],
                         'full_name' => $data['full_name'],
                         'pis_pasep' => $data['pis_pasep'],
                         'establishment_id' => $data['establishment_id'],
-                        'department_id' => $data['department_id'],
+                        'department_id' => $data['department_id'] ?: null,
                         'admission_date' => $data['admission_date'],
-                        'role' => $data['role'] ?? null,
+                        'position' => $data['role'] ?: null,
+                        'status' => 'active',
                     ]);
                     $results['success']++;
                 }

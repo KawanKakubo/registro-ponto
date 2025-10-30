@@ -15,7 +15,7 @@
 
 <!-- Filtros -->
 <div class="bg-white rounded shadow p-4 mb-6">
-    <form method="GET" action="{{ route('employees.index') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <form method="GET" action="{{ route('employees.index') }}" class="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Estabelecimento</label>
             <select name="establishment_id" id="establishment_id" class="w-full border rounded px-3 py-2">
@@ -37,6 +37,14 @@
                         {{ $department->name }}
                     </option>
                 @endforeach
+            </select>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Status do Cadastro</label>
+            <select name="incomplete" class="w-full border rounded px-3 py-2">
+                <option value="">Todos</option>
+                <option value="1" {{ request('incomplete') == '1' ? 'selected' : '' }}>⚠️ Apenas Incompletos</option>
             </select>
         </div>
 
@@ -64,19 +72,39 @@
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">CPF</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Departamento</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dados</th>
                 <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
             </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
             @forelse($employees as $employee)
-            <tr>
-                <td class="px-6 py-4">{{ $employee->full_name }}</td>
+            @php
+                $isIncomplete = empty($employee->department_id) || empty($employee->position);
+            @endphp
+            <tr class="{{ $isIncomplete ? 'bg-yellow-50 hover:bg-yellow-100' : 'hover:bg-gray-50' }}">
+                <td class="px-6 py-4">
+                    {{ $employee->full_name }}
+                    @if($isIncomplete)
+                        <span class="ml-2 text-yellow-600 text-xs">⚠️</span>
+                    @endif
+                </td>
                 <td class="px-6 py-4">{{ $employee->cpf }}</td>
-                <td class="px-6 py-4">{{ $employee->department->name ?? 'N/A' }}</td>
+                <td class="px-6 py-4">{{ $employee->department->name ?? '—' }}</td>
                 <td class="px-6 py-4">
                     <span class="px-2 py-1 text-xs rounded @if($employee->status == 'active') bg-green-100 text-green-800 @else bg-gray-100 text-gray-800 @endif">
                         {{ ucfirst($employee->status) }}
                     </span>
+                </td>
+                <td class="px-6 py-4">
+                    @if($isIncomplete)
+                        <span class="text-xs text-yellow-700 font-medium">Incompleto</span>
+                        <div class="text-xs text-gray-500 mt-1">
+                            @if(empty($employee->department_id))<span class="mr-1">• Depto.</span>@endif
+                            @if(empty($employee->position))<span class="mr-1">• Cargo</span>@endif
+                        </div>
+                    @else
+                        <span class="text-xs text-green-700 font-medium">✓ Completo</span>
+                    @endif
                 </td>
                 <td class="px-6 py-4 text-right space-x-2">
                     <a href="{{ route('employees.show', $employee) }}" class="text-blue-600 hover:underline">Ver</a>
@@ -86,7 +114,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="5" class="px-6 py-4 text-center text-gray-500">Nenhum colaborador cadastrado.</td>
+                <td colspan="6" class="px-6 py-4 text-center text-gray-500">Nenhum colaborador cadastrado.</td>
             </tr>
             @endforelse
         </tbody>

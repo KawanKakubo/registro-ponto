@@ -109,10 +109,9 @@ Arquivo Fiscal Digital - formato oficial para registro de ponto eletrônico (Por
 5. Página atualiza automaticamente com o status
 
 **Status:**
-- 🟡 **Pendente**: Na fila para processar
-- 🔵 **Processando**: Worker está processando
-- 🟢 **Concluído**: Todos os registros importados
-- 🔴 **Falhou**: Erro no processamento
+- � **Processando**: Arquivo na fila ou sendo processado pelo worker
+- 🟢 **Concluído**: Todos os registros importados com sucesso
+- 🔴 **Falhou**: Erro durante o processamento
 
 ---
 
@@ -186,7 +185,7 @@ Arquivo Fiscal Digital - formato oficial para registro de ponto eletrônico (Por
 
 ## 🐛 Troubleshooting
 
-### Problema: "Importação está pendente há muito tempo"
+### Problema: "Importação está processando há muito tempo"
 
 **Solução:**
 ```bash
@@ -195,6 +194,9 @@ ps aux | grep "queue:work"
 
 # Se não estiver, iniciar:
 php artisan queue:work
+
+# Ver jobs na fila
+php artisan queue:monitor
 ```
 
 ### Problema: "Erro ao importar CSV"

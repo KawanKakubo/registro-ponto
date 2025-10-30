@@ -44,16 +44,16 @@
     <div class="bg-white rounded-lg shadow p-6">
         <h3 class="text-xl font-semibold text-gray-800 mb-4">Ações Rápidas</h3>
         <div class="space-y-3">
-            <a href="{{ route('employees.create') }}" class="block px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-center">
+            <a href="{{ route('employees.create') }}" class="block px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-center font-medium transition-colors">
                 ➕ Cadastrar Colaborador
             </a>
-            <a href="{{ route('employee-imports.create') }}" class="block px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 text-center">
+            <a href="{{ route('employee-imports.create') }}" class="block px-4 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 text-center font-medium transition-colors">
                 📊 Importar Colaboradores (CSV)
             </a>
-            <a href="{{ route('afd-imports.create') }}" class="block px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 text-center">
+            <a href="{{ route('afd-imports.create') }}" class="block px-4 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 text-center font-medium transition-colors">
                 📁 Importar Arquivo AFD
             </a>
-            <a href="{{ route('timesheets.index') }}" class="block px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 text-center">
+            <a href="{{ route('timesheets.index') }}" class="block px-4 py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 text-center font-medium transition-colors">
                 📋 Gerar Cartão de Ponto
             </a>
         </div>
