@@ -14,6 +14,7 @@
         <div><strong>Nome:</strong> {{ $employee->full_name }}</div>
         <div><strong>CPF:</strong> {{ $employee->cpf }}</div>
         <div><strong>PIS/PASEP:</strong> {{ $employee->pis_pasep ?? '-' }}</div>
+        <div><strong>Matrícula:</strong> {{ $employee->matricula ?? '-' }}</div>
         <div><strong>CTPS:</strong> {{ $employee->ctps ?? '-' }}</div>
         <div><strong>Cargo:</strong> {{ $employee->position ?? '-' }}</div>
         <div><strong>Status:</strong> 

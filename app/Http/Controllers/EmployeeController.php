@@ -23,12 +23,13 @@ class EmployeeController extends Controller
             $query->where('department_id', $request->department_id);
         }
 
-        // Busca por nome ou CPF
+        // Busca por nome, CPF ou matrícula
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('full_name', 'ILIKE', "%{$search}%")
-                  ->orWhere('cpf', 'LIKE', "%{$search}%");
+                  ->orWhere('cpf', 'LIKE', "%{$search}%")
+                  ->orWhere('matricula', 'LIKE', "%{$search}%");
             });
         }
 
@@ -62,6 +63,7 @@ class EmployeeController extends Controller
             'full_name' => 'required|string|max:255',
             'cpf' => 'required|string|max:14|unique:employees',
             'pis_pasep' => 'nullable|string|max:15|unique:employees',
+            'matricula' => 'nullable|string|max:20',
             'ctps' => 'nullable|string|max:20',
             'admission_date' => 'required|date',
             'position' => 'nullable|string|max:100',
@@ -97,6 +99,7 @@ class EmployeeController extends Controller
             'full_name' => 'required|string|max:255',
             'cpf' => 'required|string|max:14|unique:employees,cpf,' . $employee->id,
             'pis_pasep' => 'nullable|string|max:15|unique:employees,pis_pasep,' . $employee->id,
+            'matricula' => 'nullable|string|max:20',
             'ctps' => 'nullable|string|max:20',
             'admission_date' => 'required|date',
             'position' => 'nullable|string|max:100',

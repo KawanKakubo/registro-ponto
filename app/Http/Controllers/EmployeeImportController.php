@@ -26,10 +26,18 @@ class EmployeeImportController extends Controller
      */
     public function downloadTemplate()
     {
+        $filePath = public_path('modelo-importacao-colaboradores.csv');
+        
+        if (file_exists($filePath)) {
+            return Response::download($filePath, 'modelo-importacao-colaboradores.csv');
+        }
+
+        // Fallback: gerar CSV dinamicamente
         $headers = [
-            'cpf',
             'full_name',
+            'cpf',
             'pis_pasep',
+            'matricula',
             'establishment_id',
             'department_id',
             'admission_date',
@@ -37,20 +45,21 @@ class EmployeeImportController extends Controller
         ];
 
         $example = [
-            '123.456.789-00',
             'João da Silva',
+            '123.456.789-01',
             '123.45678.90-1',
+            '1234',
             '1',
             '1',
-            '2025-01-15',
-            'Analista'
+            '2024-01-15',
+            'Analista de RH'
         ];
 
         $csv = implode(',', $headers) . "\n" . implode(',', $example);
 
         return Response::make($csv, 200, [
             'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="modelo_colaboradores.csv"',
+            'Content-Disposition' => 'attachment; filename="modelo-importacao-colaboradores.csv"',
         ]);
     }
 
@@ -187,6 +196,7 @@ class EmployeeImportController extends Controller
                     'full_name' => 'required|string|max:255',
                     'pis_pasep' => 'required|string',
                     'pis_cleaned' => 'required|string|size:11',
+                    'matricula' => 'nullable|string|max:20',
                     'establishment_id' => 'required|exists:establishments,id',
                     'department_id' => 'nullable|exists:departments,id',
                     'admission_date' => 'required|date',

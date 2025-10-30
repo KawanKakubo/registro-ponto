@@ -94,15 +94,19 @@ class ImportEmployeesFromCsv implements ShouldQueue
                 $row = array_map('trim', $row);
                 $data = array_combine($header, $row);
                 
-                // Limpar CPF e PIS
+                // Limpar CPF, PIS e Matrícula
                 $data['cpf'] = preg_replace('/[^0-9]/', '', $data['cpf']);
                 $data['pis_pasep'] = preg_replace('/[^0-9]/', '', $data['pis_pasep']);
+                if (isset($data['matricula'])) {
+                    $data['matricula'] = trim($data['matricula']);
+                }
                 
                 // Validar dados
                 $validator = Validator::make($data, [
                     'cpf' => 'required|string|size:11',
                     'full_name' => 'required|string|max:255',
                     'pis_pasep' => 'required|string|size:11',
+                    'matricula' => 'nullable|string|max:20',
                     'establishment_id' => 'required|exists:establishments,id',
                     'department_id' => 'nullable|exists:departments,id',
                     'admission_date' => 'required|date',
@@ -126,6 +130,7 @@ class ImportEmployeesFromCsv implements ShouldQueue
                     $employee->update([
                         'full_name' => $data['full_name'],
                         'pis_pasep' => $data['pis_pasep'],
+                        'matricula' => $data['matricula'] ?? $employee->matricula,
                         'establishment_id' => $data['establishment_id'],
                         'department_id' => $data['department_id'] ?: $employee->department_id,
                         'admission_date' => $data['admission_date'],
@@ -138,6 +143,7 @@ class ImportEmployeesFromCsv implements ShouldQueue
                         'cpf' => $data['cpf'],
                         'full_name' => $data['full_name'],
                         'pis_pasep' => $data['pis_pasep'],
+                        'matricula' => $data['matricula'] ?? null,
                         'establishment_id' => $data['establishment_id'],
                         'department_id' => $data['department_id'] ?: null,
                         'admission_date' => $data['admission_date'],

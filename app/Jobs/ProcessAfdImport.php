@@ -42,8 +42,19 @@ class ProcessAfdImport implements ShouldQueue
             // Atualizar status para processando
             $this->afdImport->update(['status' => 'processing']);
 
-            // Processar o arquivo AFD
-            $parser->parse($this->afdImport->file_path, $this->afdImport);
+            // Obter caminho completo do arquivo
+            $fullPath = storage_path('app/' . $this->afdImport->file_path);
+
+            // Verificar se arquivo existe
+            if (!file_exists($fullPath)) {
+                throw new \Exception("Arquivo não encontrado: {$fullPath}");
+            }
+
+            // Processar o arquivo AFD - assinatura correta: parse($filePath, $afdImport, $formatHint)
+            $result = $parser->parse($fullPath, $this->afdImport);
+
+            // Recarregar o modelo para pegar dados atualizados
+            $this->afdImport->refresh();
 
             // Atualizar status para completo
             $this->afdImport->update([
@@ -51,10 +62,11 @@ class ProcessAfdImport implements ShouldQueue
                 'processed_at' => now()
             ]);
 
-            Log::info("AFD #{$this->afdImport->id} processado com sucesso. {$this->afdImport->records_imported} registros importados.");
+            Log::info("AFD #{$this->afdImport->id} processado com sucesso. {$this->afdImport->records_imported} registros importados. Formato: {$this->afdImport->format_type}");
 
         } catch (\Exception $e) {
             Log::error("Erro ao processar AFD #{$this->afdImport->id}: " . $e->getMessage());
+            Log::error("Stack trace: " . $e->getTraceAsString());
             
             $this->afdImport->update([
                 'status' => 'failed',

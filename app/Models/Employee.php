@@ -15,6 +15,7 @@ class Employee extends Model
         'full_name',
         'cpf',
         'pis_pasep',
+        'matricula',
         'ctps',
         'admission_date',
         'position',
@@ -104,6 +105,20 @@ class Employee extends Model
 
         // Remove tudo que não é número e salva limpo
         $this->attributes['pis_pasep'] = preg_replace('/[^0-9]/', '', $value);
+    }
+
+    /**
+     * Mutator para limpar Matrícula ao salvar (remove formatação)
+     */
+    public function setMatriculaAttribute($value): void
+    {
+        if (!$value) {
+            $this->attributes['matricula'] = null;
+            return;
+        }
+
+        // Remove espaços e caracteres especiais
+        $this->attributes['matricula'] = preg_replace('/[^0-9A-Za-z]/', '', $value);
     }
     
     /**

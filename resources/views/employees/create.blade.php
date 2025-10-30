@@ -15,7 +15,11 @@
             </div>
             <div>
                 <label class="block font-medium mb-1">PIS/PASEP</label>
-                <input type="text" name="pis_pasep" class="w-full border rounded px-3 py-2">
+                <input type="text" name="pis_pasep" class="w-full border rounded px-3 py-2" placeholder="000.00000.00-0">
+            </div>
+            <div>
+                <label class="block font-medium mb-1">Matrícula</label>
+                <input type="text" name="matricula" class="w-full border rounded px-3 py-2" placeholder="Ex: 1234">
             </div>
             <div>
                 <label class="block font-medium mb-1">CTPS</label>

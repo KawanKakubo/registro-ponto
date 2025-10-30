@@ -11,6 +11,8 @@ class AfdImport extends Model
         'file_name',
         'file_path',
         'file_size',
+        'format_type',
+        'format_hint',
         'cnpj',
         'start_date',
         'end_date',

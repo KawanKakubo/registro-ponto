@@ -49,8 +49,8 @@
         </div>
 
         <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Buscar (Nome/CPF)</label>
-            <input type="text" name="search" value="{{ request('search') }}" placeholder="Digite nome ou CPF..."
+            <label class="block text-sm font-medium text-gray-700 mb-1">Buscar (Nome/CPF/Matrícula)</label>
+            <input type="text" name="search" value="{{ request('search') }}" placeholder="Digite nome, CPF ou matrícula..."
                    class="w-full border rounded px-3 py-2">
         </div>
 
