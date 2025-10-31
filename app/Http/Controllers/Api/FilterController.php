@@ -69,4 +69,32 @@ class FilterController extends Controller
 
         return response()->json($establishments);
     }
+
+    /**
+     * Retorna colaboradores por departamento (para multi-select)
+     */
+    public function getEmployeesByDepartment(Request $request)
+    {
+        $departmentId = $request->input('department_id');
+        
+        if (!$departmentId) {
+            return response()->json([]);
+        }
+
+        $employees = Employee::where('department_id', $departmentId)
+            ->where('status', 'active')
+            ->select('id', 'full_name', 'cpf', 'matricula')
+            ->orderBy('full_name')
+            ->get()
+            ->map(function ($employee) {
+                return [
+                    'value' => $employee->id,
+                    'text' => $employee->full_name,
+                    'cpf' => $employee->cpf_formatted,
+                    'matricula' => $employee->matricula ?? '-'
+                ];
+            });
+
+        return response()->json($employees);
+    }
 }

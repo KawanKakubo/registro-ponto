@@ -16,16 +16,11 @@
             box-sizing: border-box;
         }
         
-        @media print {
-            .no-print { display: none !important; }
-            body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-        }
-        
         body { 
             font-family: Arial, Helvetica, sans-serif; 
             font-size: 8.5pt;
             margin: 0;
-            padding: 20px;
+            padding: 0;
             width: 100%;
             color: #000;
         }
@@ -202,14 +197,15 @@
         .footer p {
             margin: 2pt 0;
         }
+        
+        /* Otimizações para PDF */
+        @media print {
+            .no-print { display: none !important; }
+            body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+        }
     </style>
 </head>
 <body>
-    <div class="no-print" style="margin-bottom: 20px;">
-        <button onclick="window.print()" style="background: #3b82f6; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">Imprimir</button>
-        <a href="{{ route('timesheets.index') }}" style="background: #6b7280; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; margin-left: 10px;">Voltar</a>
-    </div>
-
     <div class="header">
         <h1>CARTÃO DE PONTO</h1>
         <p>{{ $establishment->corporate_name }}</p>

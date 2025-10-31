@@ -88,6 +88,7 @@ Route::prefix('timesheets')->group(function () {
     Route::get('/', [TimesheetController::class, 'index'])->name('timesheets.index');
     Route::post('/generate', [TimesheetController::class, 'generate'])->name('timesheets.generate');
     Route::get('/show', [TimesheetController::class, 'show'])->name('timesheets.show');
+    Route::post('/download-zip', [TimesheetController::class, 'downloadZip'])->name('timesheets.download-zip');
 });
 
     // API para filtros em cascata
@@ -95,5 +96,6 @@ Route::prefix('timesheets')->group(function () {
         Route::get('/establishments', [FilterController::class, 'getEstablishments']);
         Route::get('/departments', [FilterController::class, 'getDepartmentsByEstablishment']);
         Route::get('/employees/search', [FilterController::class, 'searchEmployees']);
+        Route::get('/employees/by-department', [FilterController::class, 'getEmployeesByDepartment']);
     });
 });

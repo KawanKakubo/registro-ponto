@@ -1,13 +1,27 @@
-<!DOCTYPE html>
+<!DOCTY        @page {
+            size: A4 portrait;
+            margin: 5mm;
+        }tml>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=dev        .footer {
+            margin-top: 5pt;
+            text-align: center;
+            font-size: 7.5pt;
+            page-break-inside: avoid;
+            clear: both;
+            color: #666;
+        }
+        
+        .footer p {
+            margin: 2pt 0;
+        }nitial-scale=1.0">
     <title>Cartão de Ponto - {{ $employee->full_name }}</title>
     <style>
         @page {
             size: A4 portrait;
-            margin: 7mm 10mm;
+            margin: 10mm 12mm;
         }
         
         * {
@@ -87,54 +101,50 @@
             width: 100%; 
             border-collapse: collapse; 
             margin: 5pt 0;
-            font-size: 7pt;
+            font-size: 7.5pt;
             table-layout: fixed;
+        }
+        
+        table, th, td { 
             border: 1pt solid #333;
         }
         
         th { 
             background-color: #e0e0e0; 
-            padding: 3pt 1pt;
+            padding: 3pt 2pt;
             text-align: center; 
             font-weight: bold;
-            font-size: 7pt;
+            font-size: 7.5pt;
             white-space: nowrap;
             line-height: 1.2;
-            border-bottom: 1pt solid #333;
         }
         
         td { 
-            padding: 3pt 1pt;
+            padding: 3pt 2pt;
             text-align: center;
-            font-size: 7pt;
+            font-size: 7.5pt;
             line-height: 1.2;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            border-bottom: 1pt solid #333;
         }
         
         .day-col { 
             text-align: left; 
             padding-left: 4pt;
-            font-size: 7pt;
-            width: 55pt;
+            font-size: 7.5pt;
+            width: 60pt;
         }
         
         .time-col { 
-            font-size: 7pt;
-            width: 28pt;
-        }
-        
-        .hours-col { 
-            font-size: 7pt;
-            white-space: nowrap;
+            font-size: 7.5pt;
             width: 32pt;
         }
         
-        /* Bordas verticais seletivas */
-        .border-right {
-            border-right: 1pt solid #333;
+        .hours-col { 
+            font-size: 7.5pt;
+            white-space: nowrap;
+            width: 38pt;
         }
         
         .total-row { 
@@ -191,16 +201,16 @@
         }
         
         .footer {
-            margin-top: 5pt;
+            margin-top: 12pt;
             text-align: center;
-            font-size: 7.5pt;
+            font-size: 8pt;
             page-break-inside: avoid;
             clear: both;
             color: #666;
         }
         
         .footer p {
-            margin: 2pt 0;
+            margin: 3px 0;
         }
     </style>
 </head>
@@ -265,16 +275,14 @@
     <table>
         <thead>
             <tr>
-                <th class="day-col border-right">Dia</th>
+                <th class="day-col">Dia</th>
                 <th class="time-col">E1</th>
                 <th class="time-col">S1</th>
                 <th class="time-col">E2</th>
                 <th class="time-col">S2</th>
                 <th class="time-col">E3</th>
                 <th class="time-col">S3</th>
-                <th class="time-col">E4</th>
-                <th class="time-col border-right">S4</th>
-                <th class="hours-col border-right">H.Extra</th>
+                <th class="hours-col">H.Extra</th>
                 <th class="hours-col">Faltas</th>
             </tr>
         </thead>
@@ -299,23 +307,21 @@
                 @endphp
                 
                 <tr>
-                    <td class="day-col border-right">{{ $carbonDate->format('d/m/y') }} ({{ $dayOfWeek }})</td>
+                    <td class="day-col">{{ $carbonDate->format('d/m/y') }} ({{ $dayOfWeek }})</td>
                     <td class="time-col">{{ $punches[0] ?? '' }}</td>
                     <td class="time-col">{{ $punches[1] ?? '' }}</td>
                     <td class="time-col">{{ $punches[2] ?? '' }}</td>
                     <td class="time-col">{{ $punches[3] ?? '' }}</td>
                     <td class="time-col">{{ $punches[4] ?? '' }}</td>
                     <td class="time-col">{{ $punches[5] ?? '' }}</td>
-                    <td class="time-col">{{ $punches[6] ?? '' }}</td>
-                    <td class="time-col border-right">{{ $punches[7] ?? '' }}</td>
-                    <td class="hours-col border-right">{{ $overtime > 0 ? gmdate('H:i', $overtime * 60) : '' }}</td>
+                    <td class="hours-col">{{ $overtime > 0 ? gmdate('H:i', $overtime * 60) : '' }}</td>
                     <td class="hours-col">{{ $absence > 0 ? gmdate('H:i', $absence * 60) : '' }}</td>
                 </tr>
             @endforeach
 
             <tr class="total-row">
-                <td colspan="9" style="text-align: right; padding-right: 10px;" class="border-right"><strong>TOTAIS:</strong></td>
-                <td class="hours-col border-right"><strong>{{ gmdate('H:i', $totalOvertimeMinutes * 60) }}</strong></td>
+                <td colspan="7" style="text-align: right; padding-right: 10px;"><strong>TOTAIS:</strong></td>
+                <td class="hours-col"><strong>{{ gmdate('H:i', $totalOvertimeMinutes * 60) }}</strong></td>
                 <td class="hours-col"><strong>{{ gmdate('H:i', $totalAbsenceMinutes * 60) }}</strong></td>
             </tr>
         </tbody>
