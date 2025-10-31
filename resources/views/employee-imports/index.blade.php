@@ -1,123 +1,188 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Importações de Colaboradores - Sistema de Ponto</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100">
-    <div class="min-h-screen">
-        <!-- Header -->
-        <header class="bg-white shadow">
-            <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-                <h1 class="text-3xl font-bold text-gray-900">Importações de Colaboradores</h1>
-                <a href="/" class="text-blue-600 hover:text-blue-800">← Voltar ao Dashboard</a>
-            </div>
-        </header>
+@extends('layouts.main')
 
-        <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-            <!-- Success Message -->
-            @if(session('success'))
-                <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
-                    <span class="block sm:inline">{{ session('success') }}</span>
-                </div>
-            @endif
-
-            <!-- Actions -->
-            <div class="mb-6 flex gap-4">
-                <a href="{{ route('employee-imports.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded inline-flex items-center">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                    </svg>
-                    Nova Importação
-                </a>
-                <a href="/modelo-importacao-colaboradores.csv" download class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded inline-flex items-center">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    Baixar Modelo CSV
-                </a>
-            </div>
-
-            <!-- Imports Table -->
-            <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Arquivo</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sucesso</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Atualizados</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Erros</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        @forelse($imports as $import)
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $import->id }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $import->original_filename }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    @if($import->status === 'pending')
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                            Pendente
-                                        </span>
-                                    @elseif($import->status === 'processing')
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                                            Processando
-                                        </span>
-                                    @elseif($import->status === 'completed')
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                            Concluído
-                                        </span>
-                                    @else
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                            Falhou
-                                        </span>
-                                    @endif
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $import->total_rows }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600">{{ $import->success_count }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-600">{{ $import->updated_count }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600">{{ $import->error_count }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $import->created_at->format('d/m/Y H:i') }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                    <a href="{{ route('employee-imports.show', $import) }}" class="text-blue-600 hover:text-blue-900">Ver Detalhes</a>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="9" class="px-6 py-4 text-center text-gray-500">
-                                    Nenhuma importação encontrada. Clique em "Nova Importação" para começar.
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-
-                <!-- Pagination -->
-                @if($imports->hasPages())
-                    <div class="px-6 py-4 border-t border-gray-200">
-                        {{ $imports->links() }}
-                    </div>
-                @endif
-            </div>
-        </main>
+@section('content')
+<div class="mb-6">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">
+                <i class="fas fa-file-import text-blue-600 mr-3"></i>Importações de Colaboradores
+            </h1>
+            <p class="text-gray-600 mt-2">Histórico de importações de colaboradores via CSV</p>
+        </div>
+        <div class="flex gap-3">
+            <a href="/modelo-importacao-colaboradores.csv" download class="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transition">
+                <i class="fas fa-download mr-2"></i>Baixar Modelo CSV
+            </a>
+            <a href="{{ route('employee-imports.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transition">
+                <i class="fas fa-plus mr-2"></i>Nova Importação
+            </a>
+        </div>
     </div>
 
-    <!-- Auto-refresh for processing imports -->
-    <script>
-        // Auto-refresh page every 5 seconds if there are processing imports
-        const hasProcessing = {{ $imports->where('status', 'processing')->count() > 0 ? 'true' : 'false' }};
-        if (hasProcessing) {
-            setTimeout(() => {
-                window.location.reload();
-            }, 5000);
-        }
-    </script>
-</body>
-</html>
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-blue-100 text-sm font-medium mb-1">Total</p>
+                    <p class="text-3xl font-bold">{{ $stats['total'] }}</p>
+                </div>
+                <div class="bg-white/20 rounded-full p-4">
+                    <i class="fas fa-file-csv text-2xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-green-100 text-sm font-medium mb-1">Concluídas</p>
+                    <p class="text-3xl font-bold">{{ $stats['completed'] }}</p>
+                </div>
+                <div class="bg-white/20 rounded-full p-4">
+                    <i class="fas fa-check-circle text-2xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-yellow-100 text-sm font-medium mb-1">Processando</p>
+                    <p class="text-3xl font-bold">{{ $stats['processing'] }}</p>
+                </div>
+                <div class="bg-white/20 rounded-full p-4">
+                    <i class="fas fa-spinner text-2xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-red-500 to-red-600 rounded-lg shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-red-100 text-sm font-medium mb-1">Com Erro</p>
+                    <p class="text-3xl font-bold">{{ $stats['failed'] }}</p>
+                </div>
+                <div class="bg-white/20 rounded-full p-4">
+                    <i class="fas fa-exclamation-triangle text-2xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table Card -->
+    <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                        <th class="text-left px-6 py-4 font-semibold text-gray-700">Arquivo</th>
+                        <th class="text-center px-6 py-4 font-semibold text-gray-700">Status</th>
+                        <th class="text-center px-6 py-4 font-semibold text-gray-700">Total</th>
+                        <th class="text-center px-6 py-4 font-semibold text-gray-700">Sucesso</th>
+                        <th class="text-center px-6 py-4 font-semibold text-gray-700">Atualizados</th>
+                        <th class="text-center px-6 py-4 font-semibold text-gray-700">Erros</th>
+                        <th class="text-left px-6 py-4 font-semibold text-gray-700">Data</th>
+                        <th class="text-right px-6 py-4 font-semibold text-gray-700">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    @forelse($imports as $import)
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center text-white mr-3 shadow">
+                                    <i class="fas fa-file-csv"></i>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-gray-900">{{ $import->original_filename }}</p>
+                                    <p class="text-xs text-gray-500">ID: {{ $import->id }}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            @if($import->status === 'pending')
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                                    <i class="fas fa-clock mr-2"></i>Pendente
+                                </span>
+                            @elseif($import->status === 'processing')
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                                    <i class="fas fa-spinner fa-spin mr-2"></i>Processando
+                                </span>
+                            @elseif($import->status === 'completed')
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                    <i class="fas fa-check-circle mr-2"></i>Concluído
+                                </span>
+                            @else
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                                    <i class="fas fa-exclamation-circle mr-2"></i>Falhou
+                                </span>
+                            @endif
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="font-semibold text-gray-900">{{ $import->total_rows }}</span>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="inline-flex items-center px-2 py-1 text-sm font-medium text-green-800">
+                                <i class="fas fa-check mr-1"></i>{{ $import->success_count }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="inline-flex items-center px-2 py-1 text-sm font-medium text-blue-800">
+                                <i class="fas fa-sync mr-1"></i>{{ $import->updated_count }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="inline-flex items-center px-2 py-1 text-sm font-medium text-red-800">
+                                <i class="fas fa-times mr-1"></i>{{ $import->error_count }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center text-gray-700">
+                                <i class="fas fa-calendar text-gray-400 mr-2"></i>
+                                {{ $import->created_at->format('d/m/Y H:i') }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center justify-end space-x-2">
+                                <a href="{{ route('employee-imports.show', $import) }}" class="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 rounded transition" title="Ver detalhes">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="8" class="px-6 py-12 text-center">
+                            <i class="fas fa-file-csv text-6xl text-gray-300 mb-4"></i>
+                            <p class="text-gray-500 text-lg">Nenhuma importação realizada</p>
+                            <a href="{{ route('employee-imports.create') }}" class="inline-block mt-4 text-blue-600 hover:text-blue-800 font-medium">
+                                <i class="fas fa-plus mr-2"></i>Realizar primeira importação
+                            </a>
+                        </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        @if($imports->hasPages())
+            <div class="px-6 py-4 border-t border-gray-200">
+                {{ $imports->links() }}
+            </div>
+        @endif
+    </div>
+</div>
+
+<!-- Auto-refresh for processing imports -->
+<script>
+    // Auto-refresh page every 5 seconds if there are processing imports
+    const hasProcessing = {{ $imports->where('status', 'processing')->count() > 0 ? 'true' : 'false' }};
+    if (hasProcessing) {
+        setTimeout(() => {
+            window.location.reload();
+        }, 5000);
+    }
+</script>
+@endsection

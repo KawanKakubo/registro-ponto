@@ -41,6 +41,14 @@ class AfdImport extends Model
     }
 
     /**
+     * Alias para o relacionamento com usuário (para compatibilidade)
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'imported_by');
+    }
+
+    /**
      * Verifica se a importação foi bem-sucedida
      */
     public function isCompleted(): bool

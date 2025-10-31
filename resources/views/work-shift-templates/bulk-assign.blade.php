@@ -1,38 +1,63 @@
-@extends('layouts.app')
+@extends('layouts.main')
+
 @section('content')
-<div class="max-w-6xl mx-auto">
-    <h1 class="text-3xl font-bold mb-2">🚀 Aplicação em Massa de Jornadas</h1>
-    <p class="text-gray-600 mb-6">Aplique uma jornada de trabalho a vários colaboradores de uma só vez</p>
-    
-    @if(session('success'))
-        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-            {{ session('success') }}
+<div class="mb-6">
+    <div class="flex items-center mb-6">
+        <a href="{{ route('work-shift-templates.index') }}" class="text-gray-600 hover:text-gray-900 mr-4">
+            <i class="fas fa-arrow-left text-xl"></i>
+        </a>
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">
+                <i class="fas fa-users-cog text-blue-600 mr-3"></i>Aplicação em Massa de Jornadas
+            </h1>
+            <p class="text-gray-600 mt-2">Aplique uma jornada de trabalho a vários colaboradores de uma só vez</p>
         </div>
+    </div>
+    @if(session('success'))
+    <div class="bg-green-50 border-l-4 border-green-600 rounded-lg p-4 mb-6">
+        <div class="flex items-center">
+            <i class="fas fa-check-circle text-green-600 text-xl mr-3"></i>
+            <p class="text-green-800 font-medium">{{ session('success') }}</p>
+        </div>
+    </div>
     @endif
 
     @if(session('error'))
-        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {{ session('error') }}
+    <div class="bg-red-50 border-l-4 border-red-600 rounded-lg p-4 mb-6">
+        <div class="flex items-center">
+            <i class="fas fa-exclamation-circle text-red-600 text-xl mr-3"></i>
+            <p class="text-red-800 font-medium">{{ session('error') }}</p>
         </div>
+    </div>
     @endif
 
     @if(session('errors') && count(session('errors')) > 0)
-        <div class="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded mb-4">
-            <p class="font-bold mb-2">⚠️ Alguns erros ocorreram:</p>
-            <ul class="list-disc list-inside text-sm">
-                @foreach(session('errors') as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
+    <div class="bg-yellow-50 border-l-4 border-yellow-600 rounded-lg p-4 mb-6">
+        <div class="flex items-start">
+            <i class="fas fa-exclamation-triangle text-yellow-600 text-xl mr-3 mt-1"></i>
+            <div>
+                <p class="font-bold text-yellow-900 mb-2">Alguns erros ocorreram:</p>
+                <ul class="list-disc list-inside text-sm text-yellow-800 space-y-1">
+                    @foreach(session('errors') as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
         </div>
+    </div>
     @endif
 
     <form action="{{ route('work-shift-templates.bulk-assign.store') }}" method="POST" class="space-y-6">
         @csrf
         
         <!-- Seleção de Template -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-xl font-bold mb-4">1️⃣ Selecione a Jornada</h2>
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                    <span class="text-blue-600 font-bold">1</span>
+                </div>
+                Selecione a Jornada
+            </h2>
             <select name="template_id" id="template_id" required class="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500">
                 <option value="">-- Escolha uma jornada --</option>
                 @foreach($templates as $template)
@@ -50,8 +75,13 @@
         </div>
 
         <!-- Seleção de Colaboradores -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-xl font-bold mb-4">2️⃣ Selecione os Colaboradores</h2>
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+                    <span class="text-purple-600 font-bold">2</span>
+                </div>
+                Selecione os Colaboradores
+            </h2>
             
             <!-- Filtros -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 pb-6 border-b">
@@ -74,14 +104,14 @@
 
             <!-- Ações em Massa -->
             <div class="flex gap-3 mb-4">
-                <button type="button" onclick="selectAll()" class="bg-blue-100 text-blue-700 px-4 py-2 rounded hover:bg-blue-200">
-                    ✅ Selecionar Todos
+                <button type="button" onclick="selectAll()" class="inline-flex items-center px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold rounded-lg transition">
+                    <i class="fas fa-check-double mr-2"></i>Selecionar Todos
                 </button>
-                <button type="button" onclick="deselectAll()" class="bg-gray-100 text-gray-700 px-4 py-2 rounded hover:bg-gray-200">
-                    ❌ Desmarcar Todos
+                <button type="button" onclick="deselectAll()" class="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition">
+                    <i class="fas fa-times mr-2"></i>Desmarcar Todos
                 </button>
-                <span id="selected_count" class="px-4 py-2 bg-yellow-100 text-yellow-800 rounded font-bold">
-                    0 selecionados
+                <span id="selected_count" class="inline-flex items-center px-4 py-2 bg-yellow-100 text-yellow-800 rounded-lg font-bold">
+                    <i class="fas fa-users mr-2"></i>0 selecionados
                 </span>
             </div>
 
@@ -111,18 +141,21 @@
         </div>
 
         <!-- Botão de Envio -->
-        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg p-6">
+        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg shadow-lg p-6">
             <div class="flex items-center justify-between">
-                <div>
-                    <h3 class="text-lg font-bold text-gray-800">Pronto para aplicar?</h3>
-                    <p class="text-gray-600 text-sm">Esta ação substituirá os horários atuais dos colaboradores selecionados.</p>
+                <div class="flex items-start">
+                    <i class="fas fa-info-circle text-blue-600 text-2xl mr-3 mt-1"></i>
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800">Pronto para aplicar?</h3>
+                        <p class="text-gray-600 text-sm">Esta ação substituirá os horários atuais dos colaboradores selecionados.</p>
+                    </div>
                 </div>
                 <div class="flex gap-3">
-                    <a href="{{ route('work-shift-templates.index') }}" class="bg-gray-300 px-6 py-3 rounded-lg hover:bg-gray-400">
-                        Cancelar
+                    <a href="{{ route('work-shift-templates.index') }}" class="inline-flex items-center px-6 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition">
+                        <i class="fas fa-times mr-2"></i>Cancelar
                     </a>
-                    <button type="submit" class="bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold px-8 py-3 rounded-lg hover:from-blue-600 hover:to-blue-700 shadow-md hover:shadow-lg transition-all">
-                        🚀 Aplicar Jornada
+                    <button type="submit" class="inline-flex items-center px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transition">
+                        <i class="fas fa-rocket mr-2"></i>Aplicar Jornada
                     </button>
                 </div>
             </div>

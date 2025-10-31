@@ -12,8 +12,16 @@ class AfdImportController extends Controller
 {
     public function index()
     {
-        $imports = AfdImport::orderBy('created_at', 'desc')->get();
-        return view('afd-imports.index', compact('imports'));
+        $imports = AfdImport::with('importedByUser')->orderBy('created_at', 'desc')->get();
+        
+        $stats = [
+            'total' => $imports->count(),
+            'completed' => $imports->where('status', 'completed')->count(),
+            'pending' => $imports->where('status', 'pending')->count(),
+            'failed' => $imports->where('status', 'failed')->count(),
+        ];
+        
+        return view('afd-imports.index', compact('imports', 'stats'));
     }
 
     public function create()

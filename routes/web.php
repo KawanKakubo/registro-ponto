@@ -8,16 +8,33 @@ use App\Http\Controllers\{
     EmployeeImportController,
     WorkScheduleController,
     AfdImportController,
-    TimesheetController
+    TimesheetController,
+    AdminController
 };
+use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Api\FilterController;
 
-Route::get('/', function () {
-    return view('dashboard');
-})->name('dashboard');
+// Rotas de autenticação
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
+    Route::post('/login', [AuthController::class, 'login']);
+});
 
-// Estabelecimentos
-Route::resource('establishments', EstablishmentController::class);
+Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
+
+// Rotas protegidas por autenticação
+Route::middleware('auth')->group(function () {
+    Route::get('/', function () {
+        return view('dashboard');
+    })->name('dashboard');
+
+    // Administradores (apenas para admins)
+    Route::middleware('admin')->group(function () {
+        Route::resource('admins', AdminController::class);
+    });
+
+    // Estabelecimentos
+    Route::resource('establishments', EstablishmentController::class);
 
 // Departamentos
 Route::resource('departments', DepartmentController::class);
@@ -73,9 +90,10 @@ Route::prefix('timesheets')->group(function () {
     Route::get('/show', [TimesheetController::class, 'show'])->name('timesheets.show');
 });
 
-// API para filtros em cascata
-Route::prefix('api')->group(function () {
-    Route::get('/establishments', [FilterController::class, 'getEstablishments']);
-    Route::get('/departments', [FilterController::class, 'getDepartmentsByEstablishment']);
-    Route::get('/employees/search', [FilterController::class, 'searchEmployees']);
+    // API para filtros em cascata
+    Route::prefix('api')->group(function () {
+        Route::get('/establishments', [FilterController::class, 'getEstablishments']);
+        Route::get('/departments', [FilterController::class, 'getDepartmentsByEstablishment']);
+        Route::get('/employees/search', [FilterController::class, 'searchEmployees']);
+    });
 });

@@ -13,7 +13,15 @@ class EmployeeImportController extends Controller
     public function index()
     {
         $imports = EmployeeImport::orderBy('created_at', 'desc')->paginate(20);
-        return view('employee-imports.index', compact('imports'));
+        
+        $stats = [
+            'total' => EmployeeImport::count(),
+            'completed' => EmployeeImport::where('status', 'completed')->count(),
+            'processing' => EmployeeImport::where('status', 'processing')->count(),
+            'failed' => EmployeeImport::where('status', 'failed')->count(),
+        ];
+        
+        return view('employee-imports.index', compact('imports', 'stats'));
     }
 
     public function create()

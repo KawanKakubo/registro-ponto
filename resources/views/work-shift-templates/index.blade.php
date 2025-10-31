@@ -1,19 +1,23 @@
-@extends('layouts.app')
+@extends('layouts.main')
+
 @section('content')
-<div class="flex justify-between items-center mb-6">
-    <div>
-        <h1 class="text-3xl font-bold text-gray-800">📋 Modelos de Jornada</h1>
-        <p class="text-gray-600 mt-1">Gerencie os modelos de jornada de trabalho reutilizáveis</p>
+<div class="mb-6">
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">
+                <i class="fas fa-business-time text-blue-600 mr-3"></i>Modelos de Jornada
+            </h1>
+            <p class="text-gray-600 mt-2">Gerencie os modelos de jornada de trabalho reutilizáveis</p>
+        </div>
+        <div class="flex gap-3">
+            <a href="{{ route('work-shift-templates.bulk-assign') }}" class="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transition">
+                <i class="fas fa-users-cog mr-2"></i>Aplicação em Massa
+            </a>
+            <a href="{{ route('work-shift-templates.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transition">
+                <i class="fas fa-plus mr-2"></i>Novo Modelo
+            </a>
+        </div>
     </div>
-    <div class="flex gap-3">
-        <a href="{{ route('work-shift-templates.bulk-assign') }}" class="bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-3 rounded-lg hover:from-green-600 hover:to-green-700 shadow-md hover:shadow-lg transition-all font-bold">
-            🚀 Aplicação em Massa
-        </a>
-        <a href="{{ route('work-shift-templates.create') }}" class="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 shadow-md hover:shadow-lg transition-all font-bold">
-            ➕ Novo Modelo
-        </a>
-    </div>
-</div>
 
 @if(session('success'))
     <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">{{ session('success') }}</div>
@@ -23,9 +27,12 @@
     <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{{ session('error') }}</div>
 @endif
 
-<!-- Templates Pré-Configurados -->
-<div class="mb-8">
-    <h2 class="text-xl font-bold text-gray-700 mb-4">⭐ Modelos Pré-Configurados (Prefeitura de Assaí)</h2>
+    <!-- Templates Pré-Configurados -->
+    <div class="mb-8">
+        <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+            <i class="fas fa-star text-yellow-500 mr-2"></i>
+            Modelos Pré-Configurados (Prefeitura de Assaí)
+        </h2>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         @foreach($templates->where('is_preset', true) as $template)
             <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg shadow-md hover:shadow-xl transition-shadow p-6">
@@ -74,10 +81,13 @@
     </div>
 </div>
 
-<!-- Templates Personalizados -->
-@if($templates->where('is_preset', false)->count() > 0)
-<div>
-    <h2 class="text-xl font-bold text-gray-700 mb-4">🔧 Modelos Personalizados</h2>
+    <!-- Templates Personalizados -->
+    @if($templates->where('is_preset', false)->count() > 0)
+    <div>
+        <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center">
+            <i class="fas fa-cog text-blue-600 mr-2"></i>
+            Modelos Personalizados
+        </h2>
     <div class="bg-white rounded-lg shadow overflow-hidden">
         <table class="w-full">
             <thead class="bg-gray-50 border-b">
@@ -116,11 +126,12 @@
         </table>
     </div>
 </div>
-@else
-    <div class="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-        <p class="text-gray-600">Nenhum modelo personalizado criado ainda.</p>
-        <p class="text-gray-500 text-sm mt-2">Clique em "Novo Modelo" para criar um modelo customizado.</p>
-    </div>
-@endif
-
+    @else
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
+            <i class="fas fa-cog text-6xl text-gray-300 mb-4"></i>
+            <p class="text-gray-600 text-lg">Nenhum modelo personalizado criado ainda.</p>
+            <p class="text-gray-500 text-sm mt-2">Clique em "Novo Modelo" para criar um modelo customizado.</p>
+        </div>
+    @endif
+</div>
 @endsection

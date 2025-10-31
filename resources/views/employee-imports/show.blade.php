@@ -1,196 +1,195 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detalhes da Importação - Sistema de Ponto</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100">
-    <div class="min-h-screen">
-        <!-- Header -->
-        <header class="bg-white shadow">
-            <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-                <h1 class="text-3xl font-bold text-gray-900">Detalhes da Importação #{{ $import->id }}</h1>
-                <a href="{{ route('employee-imports.index') }}" class="text-blue-600 hover:text-blue-800">← Voltar</a>
-            </div>
-        </header>
+@extends('layouts.main')
 
-        <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-            <!-- Summary Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-                <div class="bg-white overflow-hidden shadow rounded-lg">
-                    <div class="p-5">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0">
-                                <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                </svg>
-                            </div>
-                            <div class="ml-5 w-0 flex-1">
-                                <dl>
-                                    <dt class="text-sm font-medium text-gray-500 truncate">Total de Linhas</dt>
-                                    <dd class="text-lg font-semibold text-gray-900">{{ $import->total_rows }}</dd>
-                                </dl>
-                            </div>
-                        </div>
-                    </div>
+@section('content')
+<div class="mb-6">
+    <div class="flex items-center mb-6">
+        <a href="{{ route('employee-imports.index') }}" class="text-gray-600 hover:text-gray-900 mr-4">
+            <i class="fas fa-arrow-left text-xl"></i>
+        </a>
+        <div class="flex-1">
+            <h1 class="text-3xl font-bold text-gray-900">
+                <i class="fas fa-file-import text-blue-600 mr-3"></i>Detalhes da Importação #{{ $import->id }}
+            </h1>
+            <p class="text-gray-600 mt-2">{{ $import->original_filename }}</p>
+        </div>
+        
+        @if($import->status === 'completed')
+        <a href="{{ route('employees.index') }}" class="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition shadow-lg">
+            <i class="fas fa-users mr-2"></i>Ver Colaboradores
+        </a>
+        @endif
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <div class="flex items-center">
+                <div class="p-3 rounded-lg bg-gray-100 mr-4">
+                    <i class="fas fa-list text-2xl text-gray-600"></i>
                 </div>
-
-                <div class="bg-white overflow-hidden shadow rounded-lg">
-                    <div class="p-5">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0">
-                                <svg class="h-6 w-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                            </div>
-                            <div class="ml-5 w-0 flex-1">
-                                <dl>
-                                    <dt class="text-sm font-medium text-gray-500 truncate">Criados</dt>
-                                    <dd class="text-lg font-semibold text-green-600">{{ $import->success_count }}</dd>
-                                </dl>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white overflow-hidden shadow rounded-lg">
-                    <div class="p-5">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0">
-                                <svg class="h-6 w-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                                </svg>
-                            </div>
-                            <div class="ml-5 w-0 flex-1">
-                                <dl>
-                                    <dt class="text-sm font-medium text-gray-500 truncate">Atualizados</dt>
-                                    <dd class="text-lg font-semibold text-blue-600">{{ $import->updated_count }}</dd>
-                                </dl>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white overflow-hidden shadow rounded-lg">
-                    <div class="p-5">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0">
-                                <svg class="h-6 w-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                            </div>
-                            <div class="ml-5 w-0 flex-1">
-                                <dl>
-                                    <dt class="text-sm font-medium text-gray-500 truncate">Erros</dt>
-                                    <dd class="text-lg font-semibold text-red-600">{{ $import->error_count }}</dd>
-                                </dl>
-                            </div>
-                        </div>
-                    </div>
+                <div>
+                    <p class="text-sm text-gray-600 font-medium">Total de Linhas</p>
+                    <p class="text-3xl font-bold text-gray-900">{{ $import->total_rows }}</p>
                 </div>
             </div>
+        </div>
 
-            <!-- Import Details -->
-            <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-6">
-                <div class="px-4 py-5 sm:px-6">
-                    <h3 class="text-lg leading-6 font-medium text-gray-900">Informações da Importação</h3>
+        <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white">
+            <div class="flex items-center">
+                <div class="p-3 rounded-lg bg-white/20 mr-4">
+                    <i class="fas fa-check-circle text-2xl"></i>
                 </div>
-                <div class="border-t border-gray-200">
-                    <dl>
-                        <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                            <dt class="text-sm font-medium text-gray-500">Arquivo</dt>
-                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ $import->original_filename }}</dd>
-                        </div>
-                        <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                            <dt class="text-sm font-medium text-gray-500">Tamanho</dt>
-                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ number_format($import->file_size / 1024, 2) }} KB</dd>
-                        </div>
-                        <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                            <dt class="text-sm font-medium text-gray-500">Status</dt>
-                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                                @if($import->status === 'pending')
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                        Pendente
-                                    </span>
-                                @elseif($import->status === 'processing')
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                                        Processando
-                                    </span>
-                                @elseif($import->status === 'completed')
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                        Concluído
-                                    </span>
-                                @else
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                        Falhou
-                                    </span>
-                                @endif
-                            </dd>
-                        </div>
-                        <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                            <dt class="text-sm font-medium text-gray-500">Data de Upload</dt>
-                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ $import->created_at->format('d/m/Y H:i:s') }}</dd>
-                        </div>
-                        @if($import->processed_at)
-                        <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                            <dt class="text-sm font-medium text-gray-500">Data de Processamento</dt>
-                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{ $import->processed_at->format('d/m/Y H:i:s') }}</dd>
-                        </div>
-                        @endif
-                        @if($import->processed_at && $import->created_at)
-                        <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                            <dt class="text-sm font-medium text-gray-500">Tempo de Processamento</dt>
-                            <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                                {{ $import->created_at->diffForHumans($import->processed_at, true) }}
-                            </dd>
-                        </div>
-                        @endif
-                        @if($import->error_message)
-                        <div class="bg-red-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                            <dt class="text-sm font-medium text-red-800">Mensagem de Erro</dt>
-                            <dd class="mt-1 text-sm text-red-900 sm:mt-0 sm:col-span-2">
-                                <pre class="whitespace-pre-wrap">{{ $import->error_message }}</pre>
-                            </dd>
-                        </div>
-                        @endif
-                    </dl>
+                <div>
+                    <p class="text-sm font-medium opacity-90">Criados</p>
+                    <p class="text-3xl font-bold">{{ $import->success_count }}</p>
                 </div>
             </div>
+        </div>
 
-            <!-- Progress Bar -->
-            @if($import->status === 'processing')
-            <div class="bg-white shadow sm:rounded-lg p-6 mb-6">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Processamento em andamento...</h3>
-                <div class="w-full bg-gray-200 rounded-full h-4">
-                    <div class="bg-blue-600 h-4 rounded-full animate-pulse" style="width: 50%"></div>
+        <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
+            <div class="flex items-center">
+                <div class="p-3 rounded-lg bg-white/20 mr-4">
+                    <i class="fas fa-sync text-2xl"></i>
                 </div>
-                <p class="text-sm text-gray-600 mt-2">A página será atualizada automaticamente.</p>
+                <div>
+                    <p class="text-sm font-medium opacity-90">Atualizados</p>
+                    <p class="text-3xl font-bold">{{ $import->updated_count }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-red-500 to-red-600 rounded-lg shadow-lg p-6 text-white">
+            <div class="flex items-center">
+                <div class="p-3 rounded-lg bg-white/20 mr-4">
+                    <i class="fas fa-exclamation-circle text-2xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-medium opacity-90">Erros</p>
+                    <p class="text-3xl font-bold">{{ $import->error_count }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Bar for Processing -->
+    @if($import->status === 'processing')
+    <div class="bg-blue-50 border-l-4 border-blue-600 rounded-lg p-6 mb-6">
+        <div class="flex items-center mb-4">
+            <i class="fas fa-spinner fa-spin text-blue-600 text-2xl mr-4"></i>
+            <div>
+                <h3 class="text-lg font-bold text-blue-900">Processamento em andamento...</h3>
+                <p class="text-sm text-blue-700">A página será atualizada automaticamente</p>
+            </div>
+        </div>
+        <div class="w-full bg-blue-200 rounded-full h-3">
+            <div class="bg-blue-600 h-3 rounded-full animate-pulse transition-all duration-500" style="width: 50%"></div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Error Message -->
+    @if($import->error_message)
+    <div class="bg-red-50 border-l-4 border-red-600 rounded-lg p-6 mb-6">
+        <div class="flex items-start">
+            <i class="fas fa-exclamation-triangle text-red-600 text-2xl mr-4 mt-1"></i>
+            <div class="flex-1">
+                <h3 class="font-bold text-red-900 mb-2">Mensagem de Erro</h3>
+                <pre class="text-sm text-red-800 whitespace-pre-wrap bg-white p-4 rounded border border-red-200 font-mono overflow-x-auto">{{ $import->error_message }}</pre>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Import Details -->
+    <div class="bg-white rounded-lg shadow-lg mb-6">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-bold text-gray-900">
+                <i class="fas fa-info-circle text-blue-600 mr-2"></i>Informações da Importação
+            </h3>
+        </div>
+        <div class="divide-y divide-gray-200">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 px-6 py-4 hover:bg-gray-50">
+                <dt class="text-sm font-semibold text-gray-700 flex items-center">
+                    <i class="fas fa-file text-gray-400 mr-2"></i>Arquivo
+                </dt>
+                <dd class="text-sm text-gray-900 md:col-span-2 font-mono">{{ $import->original_filename }}</dd>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 px-6 py-4 hover:bg-gray-50">
+                <dt class="text-sm font-semibold text-gray-700 flex items-center">
+                    <i class="fas fa-weight text-gray-400 mr-2"></i>Tamanho
+                </dt>
+                <dd class="text-sm text-gray-900 md:col-span-2">{{ number_format($import->file_size / 1024, 2) }} KB</dd>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 px-6 py-4 hover:bg-gray-50">
+                <dt class="text-sm font-semibold text-gray-700 flex items-center">
+                    <i class="fas fa-flag text-gray-400 mr-2"></i>Status
+                </dt>
+                <dd class="text-sm text-gray-900 md:col-span-2">
+                    @if($import->status === 'pending')
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-800">
+                            <i class="fas fa-clock mr-2"></i>Pendente
+                        </span>
+                    @elseif($import->status === 'processing')
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-800">
+                            <i class="fas fa-spinner fa-spin mr-2"></i>Processando
+                        </span>
+                    @elseif($import->status === 'completed')
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
+                            <i class="fas fa-check-circle mr-2"></i>Concluído
+                        </span>
+                    @else
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-red-100 text-red-800">
+                            <i class="fas fa-times-circle mr-2"></i>Falhou
+                        </span>
+                    @endif
+                </dd>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 px-6 py-4 hover:bg-gray-50">
+                <dt class="text-sm font-semibold text-gray-700 flex items-center">
+                    <i class="fas fa-calendar-plus text-gray-400 mr-2"></i>Data de Upload
+                </dt>
+                <dd class="text-sm text-gray-900 md:col-span-2">{{ $import->created_at->format('d/m/Y H:i:s') }}</dd>
+            </div>
+
+            @if($import->processed_at)
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 px-6 py-4 hover:bg-gray-50">
+                <dt class="text-sm font-semibold text-gray-700 flex items-center">
+                    <i class="fas fa-calendar-check text-gray-400 mr-2"></i>Data de Processamento
+                </dt>
+                <dd class="text-sm text-gray-900 md:col-span-2">{{ $import->processed_at->format('d/m/Y H:i:s') }}</dd>
             </div>
             @endif
 
-            <!-- Actions -->
-            <div class="flex gap-4">
-                <a href="{{ route('employee-imports.index') }}" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded">
-                    Voltar para Listagem
-                </a>
-                @if($import->status === 'completed')
-                <a href="{{ route('employees.index') }}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                    Ver Colaboradores
-                </a>
-                @endif
+            @if($import->processed_at && $import->created_at)
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 px-6 py-4 hover:bg-gray-50">
+                <dt class="text-sm font-semibold text-gray-700 flex items-center">
+                    <i class="fas fa-hourglass-half text-gray-400 mr-2"></i>Tempo de Processamento
+                </dt>
+                <dd class="text-sm text-gray-900 md:col-span-2">
+                    {{ $import->created_at->diffForHumans($import->processed_at, true) }}
+                </dd>
             </div>
-        </main>
+            @endif
+        </div>
     </div>
 
-    <!-- Auto-refresh for processing imports -->
-    <script>
-        @if($import->status === 'processing' || $import->status === 'pending')
-        setTimeout(() => {
-            window.location.reload();
-        }, 3000);
-        @endif
-    </script>
-</body>
-</html>
+    <!-- Actions -->
+    <div class="flex items-center justify-between pt-6">
+        <a href="{{ route('employee-imports.index') }}" class="inline-flex items-center px-6 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition">
+            <i class="fas fa-arrow-left mr-2"></i>Voltar para Listagem
+        </a>
+    </div>
+</div>
+
+<!-- Auto-refresh for processing imports -->
+@if($import->status === 'processing' || $import->status === 'pending')
+<script>
+    setTimeout(() => {
+        window.location.reload();
+    }, 3000);
+</script>
+@endif
+@endsection
