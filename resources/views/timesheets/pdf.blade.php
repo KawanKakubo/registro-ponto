@@ -151,7 +151,7 @@
         
         .observations-box {
             border: 1pt solid #333;
-            min-height: 25pt;
+            min-height: 64pt;
             padding: 4pt;
             font-size: 8.5pt;
             width: 100%;
@@ -160,7 +160,7 @@
         }
         
         .signature-section { 
-            margin-top: 8pt;
+            margin-top: 48pt;
             width: 100%;
             page-break-inside: avoid;
             overflow: hidden;
