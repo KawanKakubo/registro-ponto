@@ -84,7 +84,10 @@
                 </form>
                 <a 
                     href="{{ route('timesheets.index') }}" 
-                    class="inline-flex items-center bg-gray-500 hover:bg-gray-600 text-white font-semibold px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transition"
+                    class="inline-flex items-center font-semibold px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transition"
+                    style="background-color: #4b5563 !important; color: white !important;"
+                    onmouseover="this.style.backgroundColor='#374151'"
+                    onmouseout="this.style.backgroundColor='#4b5563'"
                 >
                     <i class="fas fa-arrow-left mr-2"></i>Voltar
                 </a>
