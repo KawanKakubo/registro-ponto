@@ -46,6 +46,10 @@ Route::resource('employees', EmployeeController::class);
 Route::prefix('work-shift-templates')->name('work-shift-templates.')->group(function () {
     Route::get('/', [\App\Http\Controllers\WorkShiftTemplateController::class, 'index'])->name('index');
     Route::get('/create', [\App\Http\Controllers\WorkShiftTemplateController::class, 'create'])->name('create');
+    Route::get('/select-type', [\App\Http\Controllers\WorkShiftTemplateController::class, 'selectType'])->name('select-type');
+    Route::get('/create-weekly', [\App\Http\Controllers\WorkShiftTemplateController::class, 'createWeekly'])->name('create-weekly');
+    Route::get('/create-rotating', [\App\Http\Controllers\WorkShiftTemplateController::class, 'createRotating'])->name('create-rotating');
+    Route::get('/create-flexible', [\App\Http\Controllers\WorkShiftTemplateController::class, 'createFlexible'])->name('create-flexible');
     Route::post('/', [\App\Http\Controllers\WorkShiftTemplateController::class, 'store'])->name('store');
     Route::get('/{template}/edit', [\App\Http\Controllers\WorkShiftTemplateController::class, 'edit'])->name('edit');
     Route::put('/{template}', [\App\Http\Controllers\WorkShiftTemplateController::class, 'update'])->name('update');

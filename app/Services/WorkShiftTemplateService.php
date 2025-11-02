@@ -22,18 +22,23 @@ class WorkShiftTemplateService
         DB::beginTransaction();
 
         try {
+            // Criar o template base
             $template = WorkShiftTemplate::create([
                 'name' => $data['name'],
                 'description' => $data['description'] ?? null,
                 'type' => $data['type'],
                 'is_preset' => $data['is_preset'] ?? false,
-                'weekly_hours' => $data['weekly_hours'] ?? null,
+                'weekly_hours' => $data['weekly_hours'] ?? $data['weekly_hours_required'] ?? null,
                 'created_by' => $data['created_by'] ?? auth()->id(),
             ]);
 
-            // Se for template semanal, cria os horários
-            if ($template->type === 'weekly' && isset($data['weekly_schedules'])) {
-                foreach ($data['weekly_schedules'] as $schedule) {
+            // Tipo 1: Jornada Semanal Fixa
+            if ($template->type === 'weekly' && isset($data['schedules'])) {
+                foreach ($data['schedules'] as $schedule) {
+                    if (isset($schedule['is_work_day']) && !$schedule['is_work_day']) {
+                        continue; // Pular dias não trabalhados
+                    }
+                    
                     TemplateWeeklySchedule::create([
                         'template_id' => $template->id,
                         'day_of_week' => $schedule['day_of_week'],
@@ -43,24 +48,40 @@ class WorkShiftTemplateService
                         'exit_2' => $schedule['exit_2'] ?? null,
                         'entry_3' => $schedule['entry_3'] ?? null,
                         'exit_3' => $schedule['exit_3'] ?? null,
-                        'is_work_day' => $schedule['is_work_day'] ?? true,
+                        'is_work_day' => true,
                     ]);
                 }
             }
 
-            // Se for escala rotativa, cria a regra
-            if ($template->type === 'rotating_shift' && isset($data['rotating_rule'])) {
+            // Tipo 2: Escala de Revezamento
+            if ($template->type === 'rotating_shift') {
                 TemplateRotatingRule::create([
                     'template_id' => $template->id,
-                    'work_days' => $data['rotating_rule']['work_days'],
-                    'rest_days' => $data['rotating_rule']['rest_days'],
-                    'shift_start_time' => $data['rotating_rule']['shift_start_time'] ?? null,
-                    'shift_end_time' => $data['rotating_rule']['shift_end_time'] ?? null,
+                    'work_days' => $data['work_days'],
+                    'rest_days' => $data['rest_days'],
+                    'shift_start_time' => $data['shift_start_time'],
+                    'shift_end_time' => $data['shift_end_time'],
+                    'uses_cycle_pattern' => true,
+                    'validate_exact_hours' => $data['validate_exact_hours'] ?? true,
+                    'tolerance_minutes' => $data['tolerance_minutes'] ?? 15,
+                ]);
+            }
+
+            // Tipo 3: Carga Horária Flexível
+            if ($template->type === 'weekly_hours') {
+                \App\Models\TemplateFlexibleHours::create([
+                    'template_id' => $template->id,
+                    'weekly_hours_required' => $data['weekly_hours_required'],
+                    'period_type' => $data['period_type'] ?? 'weekly',
+                    'grace_minutes' => $data['grace_minutes'] ?? 0,
+                    'requires_minimum_daily_hours' => $data['requires_minimum_daily_hours'] ?? false,
+                    'minimum_daily_hours' => $data['minimum_daily_hours'] ?? null,
+                    'minimum_days_per_week' => $data['minimum_days_per_week'] ?? null,
                 ]);
             }
 
             DB::commit();
-            return $template->fresh(['weeklySchedules', 'rotatingRule']);
+            return $template->fresh(['weeklySchedules', 'rotatingRule', 'flexibleHours']);
         } catch (\Exception $e) {
             DB::rollBack();
             throw $e;

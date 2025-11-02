@@ -14,12 +14,18 @@ class TemplateRotatingRule extends Model
         'shift_start_time',
         'shift_end_time',
         'shift_duration_hours',
+        'uses_cycle_pattern',
+        'validate_exact_hours',
+        'tolerance_minutes',
     ];
 
     protected $casts = [
         'shift_start_time' => 'datetime:H:i:s',
         'shift_end_time' => 'datetime:H:i:s',
         'shift_duration_hours' => 'decimal:2',
+        'uses_cycle_pattern' => 'boolean',
+        'validate_exact_hours' => 'boolean',
+        'tolerance_minutes' => 'integer',
     ];
 
     /**

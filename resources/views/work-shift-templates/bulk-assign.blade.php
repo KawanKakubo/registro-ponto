@@ -2,17 +2,6 @@
 
 @section('content')
 <div class="mb-6">
-    <div class="flex items-center mb-6">
-        <a href="{{ route('work-shift-templates.index') }}" class="text-gray-600 hover:text-gray-900 mr-4">
-            <i class="fas fa-arrow-left text-xl"></i>
-        </a>
-        <div>
-            <h1 class="text-3xl font-bold text-gray-900">
-                <i class="fas fa-users-cog text-blue-600 mr-3"></i>Aplicação em Massa de Jornadas
-            </h1>
-            <p class="text-gray-600 mt-2">Aplique uma jornada de trabalho a vários colaboradores de uma só vez</p>
-        </div>
-    </div>
     @if(session('success'))
     <div class="bg-green-50 border-l-4 border-green-600 rounded-lg p-4 mb-6">
         <div class="flex items-center">
@@ -30,6 +19,18 @@
         </div>
     </div>
     @endif
+
+    <div class="flex items-center mb-6">
+        <a href="{{ route('work-shift-templates.index') }}" class="text-gray-600 hover:text-gray-900 mr-4">
+            <i class="fas fa-arrow-left text-xl"></i>
+        </a>
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">
+                <i class="fas fa-users-cog text-blue-600 mr-3"></i>Aplicação em Massa de Jornadas
+            </h1>
+            <p class="text-gray-600 mt-2">Aplique uma jornada de trabalho a vários colaboradores de uma só vez</p>
+        </div>
+    </div>
 
     @if(session('errors') && count(session('errors')) > 0)
     <div class="bg-yellow-50 border-l-4 border-yellow-600 rounded-lg p-4 mb-6">
@@ -90,7 +91,7 @@
                     <select id="filter_establishment" class="w-full border rounded px-3 py-2">
                         <option value="">Todos</option>
                         @foreach($establishments as $est)
-                            <option value="{{ $est->id }}">{{ $est->name }}</option>
+                            <option value="{{ $est->id }}">{{ $est->name ?: $est->corporate_name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -129,7 +130,7 @@
                         <div class="flex-1">
                             <div class="font-medium">{{ $emp->full_name }}</div>
                             <div class="text-xs text-gray-500">
-                                {{ $emp->establishment->name ?? 'Sem estabelecimento' }}
+                                {{ $emp->establishment ? ($emp->establishment->name ?: $emp->establishment->corporate_name) : 'Sem estabelecimento' }}
                                 @if($emp->department)
                                     - {{ $emp->department->name }}
                                 @endif

@@ -18,7 +18,7 @@ class WorkShiftTemplateController extends Controller
 
     public function index()
     {
-        $templates = WorkShiftTemplate::with('weeklySchedules', 'employees')
+        $templates = WorkShiftTemplate::with(['weeklySchedules', 'rotatingRule', 'flexibleHours', 'employees'])
             ->withCount('employees')
             ->orderBy('is_preset', 'desc')
             ->orderBy('name')
@@ -29,23 +29,77 @@ class WorkShiftTemplateController extends Controller
 
     public function create()
     {
-        return view('work-shift-templates.create');
+        // Redireciona para a tela de seleção de tipo
+        return redirect()->route('work-shift-templates.select-type');
+    }
+
+    /**
+     * Tela de seleção do tipo de jornada
+     */
+    public function selectType()
+    {
+        return view('work-shift-templates.select-type');
+    }
+
+    /**
+     * Formulário para jornada semanal fixa
+     */
+    public function createWeekly()
+    {
+        return view('work-shift-templates.create-weekly');
+    }
+
+    /**
+     * Formulário para escala rotativa
+     */
+    public function createRotating()
+    {
+        return view('work-shift-templates.create-rotating');
+    }
+
+    /**
+     * Formulário para carga horária flexível
+     */
+    public function createFlexible()
+    {
+        return view('work-shift-templates.create-flexible');
     }
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        // Validação base
+        $baseRules = [
             'name' => 'required|string|max:255|unique:work_shift_templates,name',
-            'type' => 'required|in:weekly,rotating_shift',
-            'weekly_hours' => 'required|numeric|min:0|max:168',
-            'schedules' => 'required_if:type,weekly|array',
-            'schedules.*.day_of_week' => 'required_if:type,weekly|integer|between:0,6',
-            'schedules.*.entry_1' => 'nullable|date_format:H:i',
-            'schedules.*.exit_1' => 'nullable|date_format:H:i',
-            'schedules.*.entry_2' => 'nullable|date_format:H:i',
-            'schedules.*.exit_2' => 'nullable|date_format:H:i',
-            'schedules.*.is_work_day' => 'boolean',
-        ]);
+            'description' => 'nullable|string|max:500',
+            'type' => 'required|in:weekly,rotating_shift,weekly_hours',
+        ];
+
+        // Adicionar regras específicas por tipo
+        if ($request->type === 'weekly') {
+            $baseRules['weekly_hours'] = 'required|numeric|min:0|max:168';
+            $baseRules['schedules'] = 'required|array';
+            $baseRules['schedules.*.day_of_week'] = 'required|integer|between:0,6';
+            $baseRules['schedules.*.entry_1'] = 'nullable|date_format:H:i';
+            $baseRules['schedules.*.exit_1'] = 'nullable|date_format:H:i';
+            $baseRules['schedules.*.entry_2'] = 'nullable|date_format:H:i';
+            $baseRules['schedules.*.exit_2'] = 'nullable|date_format:H:i';
+            $baseRules['schedules.*.is_work_day'] = 'boolean';
+        } elseif ($request->type === 'rotating_shift') {
+            $baseRules['work_days'] = 'required|integer|min:1|max:30';
+            $baseRules['rest_days'] = 'required|integer|min:1|max:30';
+            $baseRules['shift_start_time'] = 'required|date_format:H:i';
+            $baseRules['shift_end_time'] = 'required|date_format:H:i';
+            $baseRules['validate_exact_hours'] = 'boolean';
+            $baseRules['tolerance_minutes'] = 'nullable|integer|min:0|max:120';
+        } elseif ($request->type === 'weekly_hours') {
+            $baseRules['weekly_hours_required'] = 'required|numeric|min:1|max:168';
+            $baseRules['period_type'] = 'required|in:weekly,biweekly,monthly';
+            $baseRules['grace_minutes'] = 'nullable|integer|min:0|max:120';
+            $baseRules['requires_minimum_daily_hours'] = 'boolean';
+            $baseRules['minimum_daily_hours'] = 'nullable|numeric|min:0.5|max:24';
+        }
+
+        $validated = $request->validate($baseRules);
 
         try {
             $template = $this->templateService->createTemplate($validated);
@@ -75,20 +129,77 @@ class WorkShiftTemplateController extends Controller
                 ->with('error', '❌ Templates pré-configurados não podem ser editados.');
         }
 
-        $validated = $request->validate([
+        // Validação básica comum a todos os tipos
+        $rules = [
             'name' => 'required|string|max:255|unique:work_shift_templates,name,' . $template->id,
-            'weekly_hours' => 'required|numeric|min:0|max:168',
-            'schedules' => 'required|array',
-            'schedules.*.day_of_week' => 'required|integer|between:0,6',
-            'schedules.*.entry_1' => 'nullable|date_format:H:i',
-            'schedules.*.exit_1' => 'nullable|date_format:H:i',
-            'schedules.*.entry_2' => 'nullable|date_format:H:i',
-            'schedules.*.exit_2' => 'nullable|date_format:H:i',
-            'schedules.*.is_work_day' => 'boolean',
-        ]);
+            'description' => 'nullable|string',
+        ];
+
+        // Adicionar validações específicas por tipo
+        if ($template->type === 'weekly') {
+            $rules['schedules'] = 'required|array';
+            $rules['schedules.*.day_of_week'] = 'required|integer|between:0,6';
+            $rules['schedules.*.entry_1'] = 'nullable|date_format:H:i';
+            $rules['schedules.*.exit_1'] = 'nullable|date_format:H:i';
+            $rules['schedules.*.entry_2'] = 'nullable|date_format:H:i';
+            $rules['schedules.*.exit_2'] = 'nullable|date_format:H:i';
+            $rules['schedules.*.is_work_day'] = 'boolean';
+        } elseif ($template->type === 'rotating_shift') {
+            $rules['work_days'] = 'required|integer|min:1|max:30';
+            $rules['rest_days'] = 'required|integer|min:1|max:30';
+            $rules['shift_start_time'] = 'nullable|date_format:H:i';
+            $rules['shift_end_time'] = 'nullable|date_format:H:i';
+            $rules['shift_duration_hours'] = 'nullable|numeric|min:1|max:24';
+        } elseif ($template->type === 'weekly_hours') {
+            $rules['weekly_hours_required'] = 'required|numeric|min:1|max:60';
+            $rules['period_type'] = 'required|in:weekly,biweekly,monthly';
+            $rules['grace_minutes'] = 'nullable|integer|min:0|max:60';
+            $rules['requires_minimum_daily_hours'] = 'boolean';
+        }
+
+        $validated = $request->validate($rules);
 
         try {
-            $template = $this->templateService->updateTemplate($template->id, $validated);
+            // Atualizar dados básicos do template
+            $template->update([
+                'name' => $validated['name'],
+                'description' => $validated['description'] ?? null,
+            ]);
+
+            // Atualizar dados específicos por tipo
+            if ($template->type === 'weekly') {
+                // Deletar horários antigos
+                $template->weeklySchedules()->delete();
+                
+                // Criar novos horários
+                foreach ($validated['schedules'] as $scheduleData) {
+                    if (isset($scheduleData['is_work_day']) && $scheduleData['is_work_day']) {
+                        $template->weeklySchedules()->create([
+                            'day_of_week' => $scheduleData['day_of_week'],
+                            'entry_1' => $scheduleData['entry_1'] ?? null,
+                            'exit_1' => $scheduleData['exit_1'] ?? null,
+                            'entry_2' => $scheduleData['entry_2'] ?? null,
+                            'exit_2' => $scheduleData['exit_2'] ?? null,
+                            'is_work_day' => true,
+                        ]);
+                    }
+                }
+            } elseif ($template->type === 'rotating_shift') {
+                $template->rotatingRule()->update([
+                    'work_days' => $validated['work_days'],
+                    'rest_days' => $validated['rest_days'],
+                    'shift_start_time' => $validated['shift_start_time'] ?? null,
+                    'shift_end_time' => $validated['shift_end_time'] ?? null,
+                    'shift_duration_hours' => $validated['shift_duration_hours'] ?? null,
+                ]);
+            } elseif ($template->type === 'weekly_hours') {
+                $template->flexibleHours()->update([
+                    'weekly_hours_required' => $validated['weekly_hours_required'],
+                    'period_type' => $validated['period_type'],
+                    'grace_minutes' => $validated['grace_minutes'] ?? 0,
+                    'requires_minimum_daily_hours' => $validated['requires_minimum_daily_hours'] ?? false,
+                ]);
+            }
 
             return redirect()->route('work-shift-templates.index')
                 ->with('success', "✅ Template '{$template->name}' atualizado com sucesso!");
@@ -172,8 +283,9 @@ class WorkShiftTemplateController extends Controller
                         'assigned_at' => now(),
                     ]);
 
-                    // Cria work_schedules
+                    // Cria work_schedules baseado no tipo de jornada
                     if ($template->type === 'weekly' && $template->weeklySchedules->count() > 0) {
+                        // Jornadas semanais fixas - cria um schedule por dia da semana
                         foreach ($template->weeklySchedules as $schedule) {
                             \App\Models\WorkSchedule::create([
                                 'employee_id' => $employee->id,
@@ -188,6 +300,11 @@ class WorkShiftTemplateController extends Controller
                                 'effective_from' => $effectiveFrom,
                             ]);
                         }
+                    } elseif ($template->type === 'rotating_shift' || $template->type === 'weekly_hours') {
+                        // Para escalas rotativas e carga horária flexível, o WorkShiftAssignmentService 
+                        // calculará dinamicamente os horários usando getEmployeeScheduleForDate()
+                        // Não precisa criar WorkSchedule records antecipadamente
+                        // O cálculo é feito on-the-fly pelo TimesheetGeneratorService
                     }
 
                     $successCount++;

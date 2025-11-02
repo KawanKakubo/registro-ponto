@@ -164,11 +164,26 @@
             background-color: #fafafa;
         }
         
+        /* Estilos compactos para jornadas flexíveis */
+        .observations.compact {
+            margin-top: 3pt;
+        }
+        
+        .observations-box.compact {
+            min-height: 32pt;
+            padding: 3pt;
+            font-size: 7.5pt;
+        }
+        
         .signature-section { 
             margin-top: 48pt;
             width: 100%;
             page-break-inside: avoid;
             overflow: hidden;
+        }
+        
+        .signature-section.compact {
+            margin-top: 24pt;
         }
         
         .signature-box { 
@@ -188,6 +203,46 @@
             padding-top: 3pt;
             font-size: 8.5pt;
             font-weight: normal;
+        }
+        
+        .signature-line.compact {
+            margin-top: 12pt;
+            padding-top: 2pt;
+            font-size: 7.5pt;
+        }
+        
+        .flexible-summary {
+            margin-top: 3pt;
+            border: 1pt solid #333;
+            padding: 4pt;
+            background-color: #f0f8ff;
+            page-break-inside: avoid;
+        }
+        
+        .flexible-summary-title {
+            font-weight: bold;
+            margin-bottom: 3pt;
+            font-size: 8pt;
+            text-align: center;
+        }
+        
+        .flexible-summary-content {
+            display: flex;
+            justify-content: space-between;
+            font-size: 7.5pt;
+            gap: 8pt;
+        }
+        
+        .flexible-summary-item {
+            flex: 1;
+            text-align: center;
+        }
+        
+        .flexible-summary-status {
+            margin-top: 2pt;
+            font-size: 7pt;
+            text-align: center;
+            font-style: italic;
         }
         
         .footer {
@@ -321,17 +376,80 @@
         </tbody>
     </table>
 
-    <div class="observations">
+    @php
+        $isFlexible = isset($is_flexible_hours) && $is_flexible_hours;
+        $isRotating = isset($is_rotating_shift) && $is_rotating_shift;
+        $isCompact = $isFlexible || $isRotating;
+    @endphp
+
+    @if($isFlexible && isset($flexible_summary))
+    <div class="flexible-summary">
+        <div class="flexible-summary-title">RESUMO - JORNADA DE HORAS FLEXÍVEIS</div>
+        <div class="flexible-summary-content">
+            <div class="flexible-summary-item">
+                <strong>Período:</strong> {{ $flexible_summary['period']['type'] === 'weekly' ? 'Semanal' : ($flexible_summary['period']['type'] === 'monthly' ? 'Mensal' : 'Quinzenal') }}
+            </div>
+            <div class="flexible-summary-item">
+                <strong>Devidas:</strong> {{ number_format($flexible_summary['hours']['required'], 2) }}h
+            </div>
+            <div class="flexible-summary-item">
+                <strong>Trabalhadas:</strong> {{ number_format($flexible_summary['hours']['worked'], 2) }}h
+            </div>
+            <div class="flexible-summary-item">
+                <strong>Saldo:</strong> 
+                <span style="color: {{ $flexible_summary['hours']['balance'] >= 0 ? '#059669' : '#dc2626' }}; font-weight: bold;">
+                    {{ $flexible_summary['hours']['balance'] >= 0 ? '+' : '' }}{{ number_format($flexible_summary['hours']['balance'], 2) }}h
+                </span>
+            </div>
+        </div>
+        <div class="flexible-summary-status">
+            Status: <strong>{{ $flexible_summary['status_text'] }}</strong>@if(count($flexible_summary['violations']) > 0) <span style="color: #dc2626;">({{ count($flexible_summary['violations']) }} irregularidade(s))</span>@endif
+        </div>
+    </div>
+    @endif
+
+    @if($isRotating && isset($rotating_summary))
+    <div class="flexible-summary">
+        <div class="flexible-summary-title">RESUMO - ESCALA DE REVEZAMENTO {{ $rotating_summary['cycle_info']['cycle_name'] }}</div>
+        <div class="flexible-summary-content">
+            <div class="flexible-summary-item">
+                <strong>Ciclo:</strong> {{ $rotating_summary['cycle_info']['work_days'] }} dia(s) ON / {{ $rotating_summary['cycle_info']['rest_days'] }} dia(s) OFF
+            </div>
+            <div class="flexible-summary-item">
+                <strong>Dias no Período:</strong> {{ $rotating_summary['period_stats']['work_days_in_period'] }} trabalho / {{ $rotating_summary['period_stats']['rest_days_in_period'] }} folga
+            </div>
+            <div class="flexible-summary-item">
+                <strong>Presença:</strong> {{ $rotating_summary['period_stats']['days_with_presence'] }}/{{ $rotating_summary['period_stats']['work_days_in_period'] }} dias
+            </div>
+            <div class="flexible-summary-item">
+                <strong>Duração Plantão:</strong> {{ number_format($rotating_summary['cycle_info']['shift_duration'], 0) }}h
+            </div>
+        </div>
+        @php
+            $formatMinutes = function($minutes) {
+                $hours = floor($minutes / 60);
+                $mins = $minutes % 60;
+                return sprintf('%02d:%02d', $hours, $mins);
+            };
+        @endphp
+        <div class="flexible-summary-status">
+            Total Esperado: <strong>{{ $formatMinutes($rotating_summary['hours']['expected_total']) }}</strong> | 
+            Trabalhado: <strong>{{ $formatMinutes($rotating_summary['hours']['worked_total']) }}</strong>
+        </div>
+    </div>
+    @endif
+
+    <div class="observations {{ $isCompact ? 'compact' : '' }}">
         <p>Observações:</p>
-        <div class="observations-box"></div>
+        <div class="observations-box {{ $isCompact ? 'compact' : '' }}"></div>
     </div>
 
-    <div class="signature-section">
+    <div class="signature-section {{ $isCompact ? 'compact' : '' }}">
         <div class="signature-box">
-            <div class="signature-line">Assinatura do Empregado</div>
+            <div class="signature-line {{ $isCompact ? 'compact' : '' }}">Assinatura do Empregado</div>
         </div>
         <div class="signature-box">
-            <div class="signature-line">Assinatura do Empregador</div>
+            <div class="signature-line {{ $isCompact ? 'compact' : '' }}">Assinatura do Empregador</div>
         </div>
         <div style="clear: both;"></div>
     </div>

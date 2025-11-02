@@ -9,6 +9,7 @@ class WorkSchedule extends Model
 {
     protected $fillable = [
         'employee_id',
+        'source_template_id',
         'day_of_week',
         'entry_1',
         'exit_1',

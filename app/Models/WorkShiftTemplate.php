@@ -41,6 +41,14 @@ class WorkShiftTemplate extends Model
     }
 
     /**
+     * Relacionamento com configuração de carga horária flexível (para templates tipo 'weekly_hours')
+     */
+    public function flexibleHours(): HasOne
+    {
+        return $this->hasOne(TemplateFlexibleHours::class, 'template_id');
+    }
+
+    /**
      * Relacionamento com atribuições de colaboradores
      */
     public function assignments(): HasMany
@@ -115,6 +123,14 @@ class WorkShiftTemplate extends Model
     }
 
     /**
+     * Verifica se o template é de carga horária flexível
+     */
+    public function isWeeklyHours(): bool
+    {
+        return $this->type === 'weekly_hours';
+    }
+
+    /**
      * Conta quantos colaboradores estão usando este template atualmente
      */
     public function getCurrentEmployeesCount(): int
@@ -134,9 +150,18 @@ class WorkShiftTemplate extends Model
     public function getTypeFormattedAttribute(): string
     {
         return match($this->type) {
-            'weekly' => 'Semanal',
+            'weekly' => 'Semanal Fixa',
             'rotating_shift' => 'Escala Rotativa',
+            'weekly_hours' => 'Carga Horária',
             default => $this->type,
         };
+    }
+
+    /**
+     * Scope para buscar apenas templates de carga horária
+     */
+    public function scopeWeeklyHours($query)
+    {
+        return $query->where('type', 'weekly_hours');
     }
 }

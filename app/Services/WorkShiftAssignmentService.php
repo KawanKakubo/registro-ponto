@@ -151,12 +151,12 @@ class WorkShiftAssignmentService
             return [
                 'type' => 'weekly',
                 'is_work_day' => true,
-                'entry_1' => $schedule->entry_1 ? $schedule->entry_1->format('H:i:s') : null,
-                'exit_1' => $schedule->exit_1 ? $schedule->exit_1->format('H:i:s') : null,
-                'entry_2' => $schedule->entry_2 ? $schedule->entry_2->format('H:i:s') : null,
-                'exit_2' => $schedule->exit_2 ? $schedule->exit_2->format('H:i:s') : null,
-                'entry_3' => $schedule->entry_3 ? $schedule->entry_3->format('H:i:s') : null,
-                'exit_3' => $schedule->exit_3 ? $schedule->exit_3->format('H:i:s') : null,
+                'entry_1' => $schedule->entry_1 ? (is_string($schedule->entry_1) ? $schedule->entry_1 : $schedule->entry_1->format('H:i:s')) : null,
+                'exit_1' => $schedule->exit_1 ? (is_string($schedule->exit_1) ? $schedule->exit_1 : $schedule->exit_1->format('H:i:s')) : null,
+                'entry_2' => $schedule->entry_2 ? (is_string($schedule->entry_2) ? $schedule->entry_2 : $schedule->entry_2->format('H:i:s')) : null,
+                'exit_2' => $schedule->exit_2 ? (is_string($schedule->exit_2) ? $schedule->exit_2 : $schedule->exit_2->format('H:i:s')) : null,
+                'entry_3' => $schedule->entry_3 ? (is_string($schedule->entry_3) ? $schedule->entry_3 : $schedule->entry_3->format('H:i:s')) : null,
+                'exit_3' => $schedule->exit_3 ? (is_string($schedule->exit_3) ? $schedule->exit_3 : $schedule->exit_3->format('H:i:s')) : null,
                 'daily_hours' => $schedule->daily_hours,
             ];
         }
@@ -181,14 +181,22 @@ class WorkShiftAssignmentService
             return [
                 'type' => 'rotating_shift',
                 'is_work_day' => true,
-                'entry_1' => $rule->shift_start_time ? $rule->shift_start_time->format('H:i:s') : null,
-                'exit_1' => $rule->shift_end_time ? $rule->shift_end_time->format('H:i:s') : null,
+                'entry_1' => $rule->shift_start_time ? (is_string($rule->shift_start_time) ? $rule->shift_start_time : $rule->shift_start_time->format('H:i:s')) : null,
+                'exit_1' => $rule->shift_end_time ? (is_string($rule->shift_end_time) ? $rule->shift_end_time : $rule->shift_end_time->format('H:i:s')) : null,
                 'entry_2' => null,
                 'exit_2' => null,
                 'entry_3' => null,
                 'exit_3' => null,
                 'daily_hours' => $rule->shift_duration_hours,
             ];
+        }
+
+        // Para carga horária flexível (weekly_hours)
+        // Não há horário fixo por dia - o cálculo é feito por período (semana/mês)
+        // Retornamos null para não criar expectativa diária
+        // O FlexibleHoursCalculationService calculará o total do período
+        if ($template->type === 'weekly_hours') {
+            return null;
         }
 
         return null;

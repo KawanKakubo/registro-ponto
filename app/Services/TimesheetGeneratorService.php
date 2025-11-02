@@ -10,6 +10,17 @@ use Carbon\CarbonPeriod;
 
 class TimesheetGeneratorService
 {
+    protected WorkShiftAssignmentService $assignmentService;
+    protected RotatingShiftCalculationService $rotatingService;
+    protected FlexibleHoursCalculationService $flexibleService;
+
+    public function __construct()
+    {
+        $this->assignmentService = app(WorkShiftAssignmentService::class);
+        $this->rotatingService = app(RotatingShiftCalculationService::class);
+        $this->flexibleService = app(FlexibleHoursCalculationService::class);
+    }
+
     public function generate(Employee $employee, string $startDate, string $endDate): array
     {
         $start = Carbon::parse($startDate);
@@ -23,36 +34,82 @@ class TimesheetGeneratorService
                 return Carbon::parse($record->record_date)->format('Y-m-d');
             });
 
-        $workSchedules = WorkSchedule::where('employee_id', $employee->id)
-            ->where(function($query) use ($start, $end) {
-                $query->whereNull('effective_until')
-                    ->orWhere('effective_until', '>=', $start->format('Y-m-d'));
-            })
-            ->where(function($query) use ($start) {
-                $query->whereNull('effective_from')
-                    ->orWhere('effective_from', '<=', $start->format('Y-m-d'));
-            })
-            ->get()
-            ->keyBy('day_of_week');
-
         $period = CarbonPeriod::create($start, $end);
         
         $dailyRecords = [];
         $calculations = [];
+        
+        // Verificar tipo de jornada
+        $currentAssignment = $employee->currentWorkShiftAssignment;
+        $isFlexibleHours = $currentAssignment && $currentAssignment->template->type === 'weekly_hours';
+        $isRotatingShift = $currentAssignment && $currentAssignment->template->type === 'rotating_shift';
+        
+        if ($isFlexibleHours && $currentAssignment->template->flexibleHours) {
+            // Para jornadas flexíveis, calcular por período
+            $flexibleBalance = $this->flexibleService->calculatePeriodBalance(
+                $employee,
+                $start,
+                $end,
+                $currentAssignment->template->flexibleHours,
+                $timeRecords
+            );
+            
+            // Preencher cálculos diários baseado no balanço do período
+            foreach ($period as $date) {
+                $dateStr = $date->format('Y-m-d');
+                $records = $timeRecords[$dateStr] ?? collect();
+                $dailyRecords[$dateStr] = $records;
+                
+                // Para horas flexíveis, mostrar apenas horas trabalhadas diariamente
+                $workedMinutes = $records->isNotEmpty() ? $this->calculateWorkedMinutes($records) : 0;
+                
+                $calculations[$dateStr] = [
+                    'worked' => $workedMinutes,
+                    'expected' => 0, // Não há expectativa diária fixa
+                    'overtime' => 0, // Calculado no período, não diariamente
+                    'absence' => 0,  // Calculado no período, não diariamente
+                    'is_flexible' => true,
+                ];
+            }
+            
+            // Adicionar resumo do período ao retorno
+            return [
+                'employee' => $employee,
+                'establishment' => $employee->establishment,
+                'startDate' => $start->format('Y-m-d'),
+                'endDate' => $end->format('Y-m-d'),
+                'dailyRecords' => $dailyRecords,
+                'calculations' => $calculations,
+                'flexible_summary' => $flexibleBalance,
+                'is_flexible_hours' => true,
+                'is_rotating_shift' => false,
+                'rotating_summary' => null,
+            ];
+        }
 
+        // Para jornadas fixas e de revezamento (comportamento original)
         foreach ($period as $date) {
             $dateStr = $date->format('Y-m-d');
-            $dayOfWeek = $date->dayOfWeek;
             
             $records = $timeRecords[$dateStr] ?? collect();
             $dailyRecords[$dateStr] = $records;
             
-            $expectedSchedule = $workSchedules[$dayOfWeek] ?? null;
+            // Usa WorkShiftAssignmentService para obter horário esperado do funcionário
+            $expectedSchedule = $this->assignmentService->getEmployeeScheduleForDate($employee->id, $dateStr);
             
             $calculations[$dateStr] = $this->calculateHours(
                 $records,
                 $expectedSchedule,
                 $date
+            );
+        }
+
+        // Se for jornada de revezamento, calcular resumo do ciclo
+        $rotatingSummary = null;
+        if ($isRotatingShift && $currentAssignment->template->rotatingRule) {
+            $rotatingSummary = $this->calculateRotatingSummary(
+                $calculations,
+                $currentAssignment->template->rotatingRule
             );
         }
 
@@ -63,14 +120,17 @@ class TimesheetGeneratorService
             'endDate' => $end->format('Y-m-d'),
             'dailyRecords' => $dailyRecords,
             'calculations' => $calculations,
+            'is_flexible_hours' => false,
+            'is_rotating_shift' => $isRotatingShift,
+            'rotating_summary' => $rotatingSummary,
         ];
     }
 
     protected function calculateHours($records, $expectedSchedule, Carbon $date): array
     {
         if ($records->isEmpty()) {
-            if ($expectedSchedule && $this->isWorkDay($expectedSchedule)) {
-                $expectedMinutes = $this->calculateExpectedMinutes($expectedSchedule);
+            if ($expectedSchedule && isset($expectedSchedule['is_work_day']) && $expectedSchedule['is_work_day']) {
+                $expectedMinutes = $this->calculateExpectedMinutesFromArray($expectedSchedule);
                 return [
                     'worked' => 0,
                     'expected' => $expectedMinutes,
@@ -98,7 +158,7 @@ class TimesheetGeneratorService
             ];
         }
 
-        $expectedMinutes = $this->calculateExpectedMinutes($expectedSchedule);
+        $expectedMinutes = $this->calculateExpectedMinutesFromArray($expectedSchedule);
         $difference = $workedMinutes - $expectedMinutes;
         
         return [
@@ -114,11 +174,15 @@ class TimesheetGeneratorService
         $punches = $records->sortBy('recorded_at')->pluck('recorded_at')->toArray();
         $totalMinutes = 0;
         
+        // Calcula em pares (entrada/saída)
         for ($i = 0; $i < count($punches) - 1; $i += 2) {
-            $entry = Carbon::parse($punches[$i]);
-            $exit = Carbon::parse($punches[$i + 1]);
-            
-            $totalMinutes += $exit->diffInMinutes($entry);
+            if (isset($punches[$i + 1])) {
+                $entry = Carbon::parse($punches[$i]);
+                $exit = Carbon::parse($punches[$i + 1]);
+                
+                // Calcula a diferença corretamente (exit - entry)
+                $totalMinutes += $entry->diffInMinutes($exit, false);
+            }
         }
         
         return $totalMinutes;
@@ -143,6 +207,30 @@ class TimesheetGeneratorService
         return $totalMinutes;
     }
 
+    protected function calculateExpectedMinutesFromArray(array $schedule): int
+    {
+        // Se o schedule tem daily_hours, converte para minutos
+        if (isset($schedule['daily_hours'])) {
+            return (int) round($schedule['daily_hours'] * 60);
+        }
+
+        $totalMinutes = 0;
+        
+        if (!empty($schedule['entry_1']) && !empty($schedule['exit_1'])) {
+            $totalMinutes += $this->minutesBetween($schedule['entry_1'], $schedule['exit_1']);
+        }
+        
+        if (!empty($schedule['entry_2']) && !empty($schedule['exit_2'])) {
+            $totalMinutes += $this->minutesBetween($schedule['entry_2'], $schedule['exit_2']);
+        }
+        
+        if (!empty($schedule['entry_3']) && !empty($schedule['exit_3'])) {
+            $totalMinutes += $this->minutesBetween($schedule['entry_3'], $schedule['exit_3']);
+        }
+        
+        return $totalMinutes;
+    }
+
     protected function minutesBetween($time1, $time2): int
     {
         // Converte para string se for objeto Carbon/DateTime
@@ -162,6 +250,67 @@ class TimesheetGeneratorService
 
     protected function isWorkDay($schedule): bool
     {
+        // Se é um array (novo formato)
+        if (is_array($schedule)) {
+            return isset($schedule['is_work_day']) && $schedule['is_work_day'];
+        }
+
+        // Se é um objeto (formato antigo)
         return $schedule->entry_1 !== null || $schedule->entry_2 !== null || $schedule->entry_3 !== null;
+    }
+
+    protected function calculateRotatingSummary(array $calculations, $rotatingRule): array
+    {
+        $workDaysCount = 0;
+        $restDaysCount = 0;
+        $totalWorkedMinutes = 0;
+        $totalExpectedMinutes = 0;
+        $totalOvertimeMinutes = 0;
+        $totalAbsenceMinutes = 0;
+        $daysWithPresence = 0;
+        $daysWithAbsence = 0;
+
+        foreach ($calculations as $calc) {
+            if ($calc['expected'] > 0) {
+                // Era dia de trabalho no ciclo
+                $workDaysCount++;
+                $totalExpectedMinutes += $calc['expected'];
+                $totalWorkedMinutes += $calc['worked'];
+                $totalOvertimeMinutes += $calc['overtime'];
+                $totalAbsenceMinutes += $calc['absence'];
+
+                if ($calc['worked'] > 0) {
+                    $daysWithPresence++;
+                }
+                if ($calc['absence'] > 0) {
+                    $daysWithAbsence++;
+                }
+            } else {
+                // Era dia de folga
+                $restDaysCount++;
+            }
+        }
+
+        return [
+            'cycle_info' => [
+                'work_days' => $rotatingRule->work_days,
+                'rest_days' => $rotatingRule->rest_days,
+                'cycle_name' => $rotatingRule->work_days . 'x' . $rotatingRule->rest_days,
+                'shift_duration' => $rotatingRule->shift_duration_hours,
+            ],
+            'period_stats' => [
+                'work_days_in_period' => $workDaysCount,
+                'rest_days_in_period' => $restDaysCount,
+                'total_days' => $workDaysCount + $restDaysCount,
+                'days_with_presence' => $daysWithPresence,
+                'days_with_absence' => $daysWithAbsence,
+            ],
+            'hours' => [
+                'expected_total' => $totalExpectedMinutes,
+                'worked_total' => $totalWorkedMinutes,
+                'overtime_total' => $totalOvertimeMinutes,
+                'absence_total' => $totalAbsenceMinutes,
+            ],
+        ];
     }
 }
