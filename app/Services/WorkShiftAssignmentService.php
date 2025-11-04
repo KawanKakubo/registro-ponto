@@ -115,16 +115,16 @@ class WorkShiftAssignmentService
     }
 
     /**
-     * Retorna o horário de trabalho de um colaborador para uma data específica
+     * Retorna o horário de trabalho de um vínculo (matrícula) para uma data específica
      *
-     * @param int $employeeId ID do colaborador
+     * @param int $registrationId ID do vínculo (employee_registration_id)
      * @param string $date Data no formato Y-m-d
      * @return array|null Horários do dia ou null se não houver
      */
-    public function getEmployeeScheduleForDate(int $employeeId, string $date): ?array
+    public function getEmployeeScheduleForDate(int $registrationId, string $date): ?array
     {
         $assignment = EmployeeWorkShiftAssignment::with(['template.weeklySchedules', 'template.rotatingRule'])
-            ->where('employee_id', $employeeId)
+            ->where('employee_registration_id', $registrationId)
             ->where('effective_from', '<=', $date)
             ->where(function ($query) use ($date) {
                 $query->whereNull('effective_until')

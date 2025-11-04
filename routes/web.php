@@ -9,7 +9,8 @@ use App\Http\Controllers\{
     WorkScheduleController,
     AfdImportController,
     TimesheetController,
-    AdminController
+    AdminController,
+    DashboardController
 };
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Api\FilterController;
@@ -24,9 +25,8 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->n
 
 // Rotas protegidas por autenticação
 Route::middleware('auth')->group(function () {
-    Route::get('/', function () {
-        return view('dashboard');
-    })->name('dashboard');
+    // Dashboard
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
     // Administradores (apenas para admins)
     Route::middleware('admin')->group(function () {
@@ -39,8 +39,22 @@ Route::middleware('auth')->group(function () {
 // Departamentos
 Route::resource('departments', DepartmentController::class);
 
-// Colaboradores
+// Colaboradores (Pessoas)
 Route::resource('employees', EmployeeController::class);
+
+// Vínculos de Colaboradores (EmployeeRegistrations)
+Route::prefix('people/{person}/registrations')->name('registrations.')->group(function () {
+    Route::get('/create', [\App\Http\Controllers\EmployeeRegistrationController::class, 'create'])->name('create');
+    Route::post('/', [\App\Http\Controllers\EmployeeRegistrationController::class, 'store'])->name('store');
+});
+
+Route::prefix('registrations')->name('registrations.')->group(function () {
+    Route::get('/{registration}/edit', [\App\Http\Controllers\EmployeeRegistrationController::class, 'edit'])->name('edit');
+    Route::put('/{registration}', [\App\Http\Controllers\EmployeeRegistrationController::class, 'update'])->name('update');
+    Route::post('/{registration}/terminate', [\App\Http\Controllers\EmployeeRegistrationController::class, 'terminate'])->name('terminate');
+    Route::post('/{registration}/reactivate', [\App\Http\Controllers\EmployeeRegistrationController::class, 'reactivate'])->name('reactivate');
+    Route::delete('/{registration}', [\App\Http\Controllers\EmployeeRegistrationController::class, 'destroy'])->name('destroy');
+});
 
 // Templates de Jornada
 Route::prefix('work-shift-templates')->name('work-shift-templates.')->group(function () {
@@ -85,11 +99,18 @@ Route::prefix('employee-imports')->group(function () {
     Route::post('/upload', [EmployeeImportController::class, 'upload'])->name('employee-imports.upload');
     Route::post('/{import}/process', [EmployeeImportController::class, 'process'])->name('employee-imports.process');
     Route::get('/{import}', [EmployeeImportController::class, 'show'])->name('employee-imports.show');
+    Route::get('/{import}/errors', [EmployeeImportController::class, 'showErrors'])->name('employee-imports.errors');
 });
 
-// Cartão de Ponto
+// Cartão de Ponto (Novo Fluxo: Pessoa → Vínculos)
 Route::prefix('timesheets')->group(function () {
     Route::get('/', [TimesheetController::class, 'index'])->name('timesheets.index');
+    Route::post('/search-person', [TimesheetController::class, 'searchPerson'])->name('timesheets.search-person');
+    Route::get('/person/{person}/registrations', [TimesheetController::class, 'showPersonRegistrations'])->name('timesheets.person-registrations');
+    Route::post('/generate-multiple', [TimesheetController::class, 'generateMultiple'])->name('timesheets.generate-multiple');
+    Route::get('/registration/{registration}', [TimesheetController::class, 'showRegistration'])->name('timesheets.show-registration');
+    
+    // Rotas antigas (deprecated)
     Route::post('/generate', [TimesheetController::class, 'generate'])->name('timesheets.generate');
     Route::get('/show', [TimesheetController::class, 'show'])->name('timesheets.show');
     Route::post('/download-zip', [TimesheetController::class, 'downloadZip'])->name('timesheets.download-zip');

@@ -2,7 +2,8 @@
 
 namespace App\Services\AfdParsers;
 
-use App\Models\Employee;
+use App\Models\Person;
+use App\Models\EmployeeRegistration;
 use App\Models\TimeRecord;
 use App\Models\AfdImport;
 use Carbon\Carbon;
@@ -91,39 +92,53 @@ abstract class BaseAfdParser implements AfdParserInterface
     abstract protected function processFile(string $filePath): void;
 
     /**
-     * Busca um colaborador por PIS, Matrícula ou CPF
+     * Busca um vínculo (matrícula) por PIS, Matrícula ou CPF
+     * 
+     * LÓGICA NOVA (Refatoração Pessoa + Vínculo):
+     * - Prioridade 1: Busca direta por Matrícula (EmployeeRegistration)
+     * - Prioridade 2: Busca por PIS (Person) e retorna primeiro vínculo ativo
+     * - Prioridade 3: Busca por CPF (Person) e retorna primeiro vínculo ativo
      * 
      * @param string|null $pis PIS/PASEP
      * @param string|null $matricula Matrícula
      * @param string|null $cpf CPF
-     * @return Employee|null
+     * @return EmployeeRegistration|null
      */
-    protected function findEmployee(?string $pis = null, ?string $matricula = null, ?string $cpf = null): ?Employee
+    protected function findEmployeeRegistration(?string $pis = null, ?string $matricula = null, ?string $cpf = null): ?EmployeeRegistration
     {
-        $query = Employee::query();
-
-        // Prioridade: PIS > Matrícula > CPF
-        if ($pis) {
-            $normalizedPis = preg_replace('/[^0-9]/', '', $pis);
-            $employee = $query->where('pis_pasep', $normalizedPis)->first();
-            if ($employee) {
-                return $employee;
-            }
-        }
-
+        // PRIORIDADE 1: Busca direta por Matrícula (mais específico)
         if ($matricula) {
             $normalizedMatricula = preg_replace('/[^0-9A-Za-z]/', '', $matricula);
-            $employee = Employee::where('matricula', $normalizedMatricula)->first();
-            if ($employee) {
-                return $employee;
+            $registration = EmployeeRegistration::where('matricula', $normalizedMatricula)
+                ->where('status', 'active')
+                ->first();
+            
+            if ($registration) {
+                return $registration;
             }
         }
 
+        // PRIORIDADE 2: Busca por PIS (identifica a Pessoa)
+        if ($pis) {
+            $normalizedPis = preg_replace('/[^0-9]/', '', $pis);
+            $person = Person::where('pis_pasep', $normalizedPis)->first();
+            
+            if ($person) {
+                // Retorna o primeiro vínculo ativo da pessoa
+                // TODO: Se houver múltiplos vínculos, qual escolher?
+                // Por enquanto, retorna o primeiro ativo
+                return $person->activeRegistrations()->first();
+            }
+        }
+
+        // PRIORIDADE 3: Busca por CPF (identifica a Pessoa)
         if ($cpf) {
             $normalizedCpf = preg_replace('/[^0-9]/', '', $cpf);
-            $employee = Employee::where('cpf', $normalizedCpf)->first();
-            if ($employee) {
-                return $employee;
+            $person = Person::where('cpf', $normalizedCpf)->first();
+            
+            if ($person) {
+                // Retorna o primeiro vínculo ativo da pessoa
+                return $person->activeRegistrations()->first();
             }
         }
 
@@ -131,16 +146,24 @@ abstract class BaseAfdParser implements AfdParserInterface
     }
 
     /**
+     * DEPRECATED: Mantido por compatibilidade - usar findEmployeeRegistration()
+     */
+    protected function findEmployee(?string $pis = null, ?string $matricula = null, ?string $cpf = null): ?EmployeeRegistration
+    {
+        return $this->findEmployeeRegistration($pis, $matricula, $cpf);
+    }
+
+    /**
      * Cria um registro de ponto
      */
     protected function createTimeRecord(
-        Employee $employee, 
+        EmployeeRegistration $registration, 
         Carbon $recordedAt, 
         string $nsr, 
         string $recordType
     ): bool {
         // Verifica se já existe
-        $exists = TimeRecord::where('employee_id', $employee->id)
+        $exists = TimeRecord::where('employee_registration_id', $registration->id)
             ->where('recorded_at', $recordedAt)
             ->exists();
 
@@ -150,7 +173,7 @@ abstract class BaseAfdParser implements AfdParserInterface
         }
 
         TimeRecord::create([
-            'employee_id' => $employee->id,
+            'employee_registration_id' => $registration->id,
             'recorded_at' => $recordedAt,
             'record_date' => $recordedAt->format('Y-m-d'),
             'record_time' => $recordedAt->format('H:i:s'),

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartão de Ponto - {{ $employee->full_name }}</title>
+    <title>Cartão de Ponto - {{ $person->full_name }}</title>
     <style>
         @page {
             size: A4 portrait;
@@ -275,39 +275,39 @@
         <div class="info-column">
             <div class="info-row">
                 <span class="info-label">Nome:</span>
-                <span class="info-value">{{ $employee->full_name }}</span>
+                <span class="info-value">{{ $person->full_name }}</span>
             </div>
             <div class="info-row">
                 <span class="info-label">PIS/PASEP:</span>
-                <span class="info-value">{{ $employee->pis_pasep_formatted ?? '-' }}</span>
+                <span class="info-value">{{ $person->pis_pasep_formatted ?? '-' }}</span>
             </div>
             <div class="info-row">
                 <span class="info-label">Função:</span>
-                <span class="info-value">{{ $employee->position }}</span>
+                <span class="info-value">{{ $registration->position }}</span>
             </div>
         </div>
         <div class="info-column">
             <div class="info-row">
                 <span class="info-label">CPF:</span>
-                <span class="info-value">{{ $employee->cpf_formatted }}</span>
+                <span class="info-value">{{ $person->cpf_formatted }}</span>
             </div>
             <div class="info-row">
                 <span class="info-label">CTPS:</span>
-                <span class="info-value">{{ $employee->ctps ?? '-' }}</span>
+                <span class="info-value">{{ $person->ctps ?? '-' }}</span>
             </div>
             <div class="info-row">
                 <span class="info-label">Departamento:</span>
-                <span class="info-value">{{ $employee->department->name ?? 'N/A' }}</span>
+                <span class="info-value">{{ $registration->department->name ?? 'N/A' }}</span>
             </div>
         </div>
         <div class="info-column">
             <div class="info-row">
                 <span class="info-label">Matrícula:</span>
-                <span class="info-value">{{ $employee->matricula ?? '-' }}</span>
+                <span class="info-value">{{ $registration->matricula ?? '-' }}</span>
             </div>
             <div class="info-row">
                 <span class="info-label">Admissão:</span>
-                <span class="info-value">{{ \Carbon\Carbon::parse($employee->admission_date)->format('d/m/Y') }}</span>
+                <span class="info-value">{{ \Carbon\Carbon::parse($registration->admission_date)->format('d/m/Y') }}</span>
             </div>
             <div class="info-row">
                 <span class="info-label">Período:</span>

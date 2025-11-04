@@ -18,8 +18,8 @@ class WorkShiftTemplateController extends Controller
 
     public function index()
     {
-        $templates = WorkShiftTemplate::with(['weeklySchedules', 'rotatingRule', 'flexibleHours', 'employees'])
-            ->withCount('employees')
+        $templates = WorkShiftTemplate::with(['weeklySchedules', 'rotatingRule', 'flexibleHours', 'employeeRegistrations'])
+            ->withCount('employeeRegistrations')
             ->orderBy('is_preset', 'desc')
             ->orderBy('name')
             ->get();
@@ -215,9 +215,11 @@ class WorkShiftTemplateController extends Controller
                 ->with('error', '❌ Templates pré-configurados não podem ser excluídos.');
         }
 
-        if ($template->employees()->count() > 0) {
+        // Verifica se está em uso por vínculos
+        $registrationsCount = $template->employeeRegistrations()->count();
+        if ($registrationsCount > 0) {
             return redirect()->route('work-shift-templates.index')
-                ->with('error', '❌ Este template não pode ser excluído pois está em uso por ' . $template->employees()->count() . ' colaborador(es).');
+                ->with('error', "❌ Este template não pode ser excluído pois está em uso por {$registrationsCount} vínculo(s).");
         }
 
         try {
@@ -232,63 +234,78 @@ class WorkShiftTemplateController extends Controller
 
     /**
      * Formulário de aplicação em massa
+     * Atualizado para trabalhar com vínculos (EmployeeRegistration)
      */
     public function bulkAssignForm()
     {
         $templates = WorkShiftTemplate::orderBy('is_preset', 'desc')->orderBy('name')->get();
         $establishments = \App\Models\Establishment::with('departments')->get();
         
-        return view('work-shift-templates.bulk-assign', compact('templates', 'establishments'));
+        // Buscar todos os vínculos ativos com eager loading
+        $registrations = \App\Models\EmployeeRegistration::with(['person', 'establishment', 'department', 'currentWorkShiftAssignment.template'])
+            ->where('status', 'active')
+            ->orderBy('matricula')
+            ->get();
+        
+        return view('work-shift-templates.bulk-assign', compact('templates', 'establishments', 'registrations'));
     }
 
     /**
      * Processa aplicação em massa
+     * Atualizado para trabalhar com vínculos (EmployeeRegistration)
      */
     public function bulkAssignStore(Request $request)
     {
         $validated = $request->validate([
             'template_id' => 'required|exists:work_shift_templates,id',
-            'employee_ids' => 'required|array|min:1',
-            'employee_ids.*' => 'exists:employees,id',
+            'registration_ids' => 'required|array|min:1',
+            'registration_ids.*' => 'exists:employee_registrations,id',
             'effective_from' => 'nullable|date',
         ]);
 
         try {
             $template = WorkShiftTemplate::with('weeklySchedules')->find($validated['template_id']);
-            $employeeIds = $validated['employee_ids'];
+            $registrationIds = $validated['registration_ids'];
             $effectiveFrom = $validated['effective_from'] ?? now()->format('Y-m-d');
             
             $successCount = 0;
             $errors = [];
 
-            foreach ($employeeIds as $employeeId) {
+            foreach ($registrationIds as $registrationId) {
                 try {
-                    $employee = \App\Models\Employee::find($employeeId);
+                    $registration = \App\Models\EmployeeRegistration::with('person')->find($registrationId);
                     
-                    // Remove horários antigos
-                    $employee->workSchedules()->delete();
+                    if (!$registration) {
+                        $errors[] = "Vínculo #{$registrationId} não encontrado.";
+                        continue;
+                    }
                     
-                    // Remove atribuição antiga
-                    $employee->workShiftAssignments()->where('effective_until', null)->update([
-                        'effective_until' => now()->subDay(),
-                    ]);
+                    // Remove horários antigos (se houver - DEPRECATED)
+                    \App\Models\WorkSchedule::where('employee_id', $registration->person_id)->delete();
+                    
+                    // Encerra atribuição antiga (se houver)
+                    $registration->workShiftAssignments()
+                        ->whereNull('effective_until')
+                        ->update([
+                            'effective_until' => now()->subDay(),
+                        ]);
 
-                    // Cria nova atribuição
-                    $employee->workShiftAssignments()->create([
+                    // Cria nova atribuição para o vínculo
+                    $registration->workShiftAssignments()->create([
                         'template_id' => $template->id,
                         'effective_from' => $effectiveFrom,
                         'cycle_start_date' => $effectiveFrom,
                         'effective_until' => null,
-                        'assigned_by' => 1, // TODO: usar auth()->id()
+                        'assigned_by' => auth()->id() ?? 1,
                         'assigned_at' => now(),
                     ]);
 
-                    // Cria work_schedules baseado no tipo de jornada
+                    // Cria work_schedules baseado no tipo de jornada (DEPRECATED - mantido por compatibilidade)
                     if ($template->type === 'weekly' && $template->weeklySchedules->count() > 0) {
                         // Jornadas semanais fixas - cria um schedule por dia da semana
                         foreach ($template->weeklySchedules as $schedule) {
                             \App\Models\WorkSchedule::create([
-                                'employee_id' => $employee->id,
+                                'employee_id' => $registration->person_id, // DEPRECATED field
                                 'day_of_week' => $schedule->day_of_week,
                                 'entry_1' => $schedule->entry_1,
                                 'exit_1' => $schedule->exit_1,
@@ -309,12 +326,13 @@ class WorkShiftTemplateController extends Controller
 
                     $successCount++;
                 } catch (\Exception $e) {
-                    $errors[] = "Erro ao aplicar para {$employee->full_name}: " . $e->getMessage();
+                    $personName = $registration->person->full_name ?? 'Desconhecido';
+                    $errors[] = "Erro ao aplicar para {$personName} (Matrícula: {$registration->matricula}): " . $e->getMessage();
                 }
             }
 
             if ($successCount > 0) {
-                $message = "✅ Jornada '{$template->name}' aplicada com sucesso a {$successCount} colaborador(es)!";
+                $message = "✅ Jornada '{$template->name}' aplicada com sucesso a {$successCount} vínculo(s)!";
                 if (count($errors) > 0) {
                     $message .= " (Com " . count($errors) . " erro(s))";
                 }
@@ -323,7 +341,7 @@ class WorkShiftTemplateController extends Controller
                     ->with('errors', $errors);
             } else {
                 return redirect()->route('work-shift-templates.bulk-assign')
-                    ->with('error', 'Nenhum colaborador foi atualizado.')
+                    ->with('error', 'Nenhum vínculo foi atualizado.')
                     ->with('errors', $errors);
             }
         } catch (\Exception $e) {

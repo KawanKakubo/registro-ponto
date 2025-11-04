@@ -7,6 +7,27 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
+/**
+ * MODELO DEPRECATED - USE PERSON + EMPLOYEEREGISTRATION
+ * 
+ * @deprecated Este modelo está obsoleto e mantido apenas para compatibilidade com código legado.
+ * 
+ * NOVA ARQUITETURA:
+ * - Person: Representa a pessoa física (dados pessoais como CPF, nome, PIS)
+ * - EmployeeRegistration: Representa um vínculo empregatício (matrícula, estabelecimento, departamento)
+ * 
+ * BENEFÍCIOS DA NOVA ARQUITETURA:
+ * - Uma pessoa pode ter múltiplos vínculos (matrículas) simultâneos ou sequenciais
+ * - Histórico completo de vínculos preservado
+ * - Melhor organização dos dados pessoais vs dados empregatícios
+ * 
+ * MIGRAÇÃO:
+ * Para novo código, use:
+ * - Person::with('activeRegistrations') ao invés de Employee::where('status', 'active')
+ * - EmployeeRegistration::with('person') para acessar dados do vínculo
+ * 
+ * REMOÇÃO PLANEJADA: Versão 2.0 (após migração completa dos dados)
+ */
 class Employee extends Model
 {
     protected $fillable = [

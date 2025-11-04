@@ -2,7 +2,8 @@
 
 namespace App\Jobs;
 
-use App\Models\Employee;
+use App\Models\Person;
+use App\Models\EmployeeRegistration;
 use App\Models\EmployeeImport;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -106,7 +107,7 @@ class ImportEmployeesFromCsv implements ShouldQueue
                     'cpf' => 'required|string|size:11',
                     'full_name' => 'required|string|max:255',
                     'pis_pasep' => 'required|string|size:11',
-                    'matricula' => 'nullable|string|max:20',
+                    'matricula' => 'required|string|max:20',
                     'establishment_id' => 'required|exists:establishments,id',
                     'department_id' => 'nullable|exists:departments,id',
                     'admission_date' => 'required|date',
@@ -122,36 +123,54 @@ class ImportEmployeesFromCsv implements ShouldQueue
                     continue;
                 }
 
-                // Verificar se colaborador já existe (por CPF)
-                $employee = Employee::where('cpf', $data['cpf'])->first();
+                // NOVA LÓGICA: Pessoa + Vínculo
+                DB::transaction(function () use ($data, &$results) {
+                    // PASSO 1: Buscar ou criar a PESSOA pelo CPF
+                    $person = Person::where('cpf', $data['cpf'])->first();
 
-                if ($employee) {
-                    // Atualizar colaborador existente
-                    $employee->update([
-                        'full_name' => $data['full_name'],
-                        'pis_pasep' => $data['pis_pasep'],
-                        'matricula' => $data['matricula'] ?? $employee->matricula,
-                        'establishment_id' => $data['establishment_id'],
-                        'department_id' => $data['department_id'] ?: $employee->department_id,
-                        'admission_date' => $data['admission_date'],
-                        'position' => $data['role'] ?: $employee->position,
-                    ]);
-                    $results['updated']++;
-                } else {
-                    // Criar novo colaborador com status padrão 'active'
-                    Employee::create([
-                        'cpf' => $data['cpf'],
-                        'full_name' => $data['full_name'],
-                        'pis_pasep' => $data['pis_pasep'],
-                        'matricula' => $data['matricula'] ?? null,
-                        'establishment_id' => $data['establishment_id'],
-                        'department_id' => $data['department_id'] ?: null,
-                        'admission_date' => $data['admission_date'],
-                        'position' => $data['role'] ?: null,
-                        'status' => 'active',
-                    ]);
-                    $results['success']++;
-                }
+                    if ($person) {
+                        // Pessoa já existe, atualizar dados pessoais se necessário
+                        $person->update([
+                            'full_name' => $data['full_name'],
+                            'pis_pasep' => $data['pis_pasep'],
+                        ]);
+                    } else {
+                        // Criar nova Pessoa
+                        $person = Person::create([
+                            'cpf' => $data['cpf'],
+                            'full_name' => $data['full_name'],
+                            'pis_pasep' => $data['pis_pasep'],
+                        ]);
+                    }
+
+                    // PASSO 2: Buscar ou criar o VÍNCULO pela MATRÍCULA
+                    $registration = EmployeeRegistration::where('matricula', $data['matricula'])->first();
+
+                    if ($registration) {
+                        // Vínculo já existe, atualizar
+                        $registration->update([
+                            'person_id' => $person->id,
+                            'establishment_id' => $data['establishment_id'],
+                            'department_id' => $data['department_id'] ?: $registration->department_id,
+                            'admission_date' => $data['admission_date'],
+                            'position' => $data['role'] ?: $registration->position,
+                            'status' => 'active',
+                        ]);
+                        $results['updated']++;
+                    } else {
+                        // Criar novo Vínculo
+                        EmployeeRegistration::create([
+                            'person_id' => $person->id,
+                            'matricula' => $data['matricula'],
+                            'establishment_id' => $data['establishment_id'],
+                            'department_id' => $data['department_id'] ?: null,
+                            'admission_date' => $data['admission_date'],
+                            'position' => $data['role'] ?: null,
+                            'status' => 'active',
+                        ]);
+                        $results['success']++;
+                    }
+                });
 
             } catch (\Exception $e) {
                 $results['errors']++;

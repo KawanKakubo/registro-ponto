@@ -8,6 +8,28 @@ use App\Models\WorkShiftTemplate;
 use App\Services\WorkShiftAssignmentService;
 use Illuminate\Http\Request;
 
+/**
+ * CONTROLLER DEPRECATED - USE WORKSHIFTTEMPLATECONTROLLER
+ * 
+ * @deprecated Este controller está obsoleto e mantido apenas para compatibilidade com código legado.
+ * 
+ * NOVA ABORDAGEM:
+ * - Use WorkShiftTemplateController::bulkAssignForm() para atribuir jornadas
+ * - Use WorkShiftTemplateController::bulkAssignStore() para processar atribuições
+ * - A nova abordagem trabalha com vínculos (EmployeeRegistration) ao invés de Employee
+ * 
+ * DIFERENÇAS:
+ * - Antes: WorkSchedule direto por colaborador (Employee)
+ * - Agora: WorkShiftTemplate atribuído a vínculos (EmployeeRegistration) via EmployeeWorkShiftAssignment
+ * 
+ * BENEFÍCIOS:
+ * - Suporte a múltiplos vínculos por pessoa
+ * - Histórico de atribuições preservado
+ * - Templates reutilizáveis
+ * - Suporte a jornadas semanais, escalas rotativas e carga horária flexível
+ * 
+ * REMOÇÃO PLANEJADA: Versão 2.0
+ */
 class WorkScheduleController extends Controller
 {
     protected $assignmentService;

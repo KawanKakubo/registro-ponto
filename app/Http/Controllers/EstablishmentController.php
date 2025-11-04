@@ -9,12 +9,15 @@ class EstablishmentController extends Controller
 {
     public function index()
     {
-        $establishments = Establishment::orderBy('corporate_name')->get();
+        $establishments = Establishment::withCount(['employeeRegistrations', 'departments'])
+            ->orderBy('corporate_name')
+            ->get();
         
         $stats = [
             'total' => $establishments->count(),
-            'with_employees' => $establishments->filter(fn($e) => $e->employees()->count() > 0)->count(),
-            'with_departments' => $establishments->filter(fn($e) => $e->departments()->count() > 0)->count(),
+            'with_registrations' => $establishments->filter(fn($e) => $e->employee_registrations_count > 0)->count(),
+            'with_departments' => $establishments->filter(fn($e) => $e->departments_count > 0)->count(),
+            'total_registrations' => $establishments->sum('employee_registrations_count'),
             'states' => $establishments->pluck('state')->unique()->count(),
         ];
         

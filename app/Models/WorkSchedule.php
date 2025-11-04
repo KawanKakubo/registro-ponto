@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class WorkSchedule extends Model
 {
     protected $fillable = [
-        'employee_id',
+        'employee_registration_id',
         'source_template_id',
         'day_of_week',
         'entry_1',
@@ -28,11 +28,19 @@ class WorkSchedule extends Model
     ];
 
     /**
-     * Relacionamento com colaborador
+     * Relacionamento com vínculo (matrícula)
+     */
+    public function employeeRegistration(): BelongsTo
+    {
+        return $this->belongsTo(EmployeeRegistration::class);
+    }
+
+    /**
+     * DEPRECATED: Mantido por compatibilidade - usar employeeRegistration()
      */
     public function employee(): BelongsTo
     {
-        return $this->belongsTo(Employee::class);
+        return $this->employeeRegistration();
     }
 
     /**

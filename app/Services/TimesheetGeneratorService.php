@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Employee;
+use App\Models\EmployeeRegistration;
 use App\Models\TimeRecord;
 use App\Models\WorkSchedule;
 use Carbon\Carbon;
@@ -21,12 +21,21 @@ class TimesheetGeneratorService
         $this->flexibleService = app(FlexibleHoursCalculationService::class);
     }
 
-    public function generate(Employee $employee, string $startDate, string $endDate): array
+    /**
+     * Gera cartão de ponto para um vínculo (matrícula) específico
+     * 
+     * @param EmployeeRegistration $registration Vínculo (matrícula) do colaborador
+     * @param string $startDate Data inicial (Y-m-d)
+     * @param string $endDate Data final (Y-m-d)
+     * @return array Dados do cartão de ponto
+     */
+    public function generate(EmployeeRegistration $registration, string $startDate, string $endDate): array
     {
         $start = Carbon::parse($startDate);
         $end = Carbon::parse($endDate);
         
-        $timeRecords = TimeRecord::where('employee_id', $employee->id)
+        // Buscar registros de ponto deste vínculo específico
+        $timeRecords = TimeRecord::where('employee_registration_id', $registration->id)
             ->whereBetween('record_date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
             ->orderBy('recorded_at')
             ->get()
@@ -39,15 +48,15 @@ class TimesheetGeneratorService
         $dailyRecords = [];
         $calculations = [];
         
-        // Verificar tipo de jornada
-        $currentAssignment = $employee->currentWorkShiftAssignment;
+        // Verificar tipo de jornada DESTE vínculo
+        $currentAssignment = $registration->currentWorkShiftAssignment;
         $isFlexibleHours = $currentAssignment && $currentAssignment->template->type === 'weekly_hours';
         $isRotatingShift = $currentAssignment && $currentAssignment->template->type === 'rotating_shift';
         
         if ($isFlexibleHours && $currentAssignment->template->flexibleHours) {
             // Para jornadas flexíveis, calcular por período
             $flexibleBalance = $this->flexibleService->calculatePeriodBalance(
-                $employee,
+                $registration,
                 $start,
                 $end,
                 $currentAssignment->template->flexibleHours,
@@ -74,8 +83,9 @@ class TimesheetGeneratorService
             
             // Adicionar resumo do período ao retorno
             return [
-                'employee' => $employee,
-                'establishment' => $employee->establishment,
+                'registration' => $registration,
+                'person' => $registration->person,
+                'establishment' => $registration->establishment,
                 'startDate' => $start->format('Y-m-d'),
                 'endDate' => $end->format('Y-m-d'),
                 'dailyRecords' => $dailyRecords,
@@ -94,8 +104,8 @@ class TimesheetGeneratorService
             $records = $timeRecords[$dateStr] ?? collect();
             $dailyRecords[$dateStr] = $records;
             
-            // Usa WorkShiftAssignmentService para obter horário esperado do funcionário
-            $expectedSchedule = $this->assignmentService->getEmployeeScheduleForDate($employee->id, $dateStr);
+            // Usa WorkShiftAssignmentService para obter horário esperado DESTE vínculo
+            $expectedSchedule = $this->assignmentService->getEmployeeScheduleForDate($registration->id, $dateStr);
             
             $calculations[$dateStr] = $this->calculateHours(
                 $records,
@@ -114,8 +124,9 @@ class TimesheetGeneratorService
         }
 
         return [
-            'employee' => $employee,
-            'establishment' => $employee->establishment,
+            'registration' => $registration,
+            'person' => $registration->person,
+            'establishment' => $registration->establishment,
             'startDate' => $start->format('Y-m-d'),
             'endDate' => $end->format('Y-m-d'),
             'dailyRecords' => $dailyRecords,

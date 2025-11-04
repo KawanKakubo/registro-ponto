@@ -100,6 +100,67 @@
     </div>
     @endif
 
+    <!-- Error Details Section -->
+    @if($import->error_count > 0 && !empty($errorDetails))
+    <div class="bg-white rounded-lg shadow-lg mb-6">
+        <div class="px-6 py-4 border-b border-gray-200 bg-red-50">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-bold text-red-900 flex items-center">
+                        <i class="fas fa-exclamation-triangle text-red-600 mr-2"></i>
+                        Detalhes dos Erros ({{ count($errorDetails) }} {{ count($errorDetails) === 1 ? 'linha' : 'linhas' }})
+                    </h3>
+                    <p class="text-sm text-red-700 mt-1">
+                        <i class="fas fa-info-circle mr-1"></i>Linhas que não puderam ser importadas
+                    </p>
+                </div>
+                <a href="{{ route('employee-imports.errors', $import) }}" 
+                   class="inline-flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition shadow-lg">
+                    <i class="fas fa-list-alt mr-2"></i>Ver Página Completa de Erros
+                </a>
+            </div>
+        </div>
+        
+        <div class="p-6">
+            <div class="space-y-4 max-h-96 overflow-y-auto">
+                @foreach($errorDetails as $error)
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4 hover:shadow-md transition">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <div class="bg-red-600 text-white font-bold px-3 py-1 rounded-lg text-sm shadow">
+                                Linha {{ $error['line'] }}
+                            </div>
+                        </div>
+                        <div class="ml-4 flex-1">
+                            <h4 class="text-sm font-semibold text-red-900 mb-2">
+                                {{ count($error['errors']) }} {{ count($error['errors']) === 1 ? 'erro encontrado' : 'erros encontrados' }}:
+                            </h4>
+                            <ul class="space-y-1">
+                                @foreach($error['errors'] as $errorMessage)
+                                <li class="text-sm text-red-700 flex items-start">
+                                    <i class="fas fa-times-circle mr-2 mt-0.5 flex-shrink-0"></i>
+                                    <span>{{ $errorMessage }}</span>
+                                </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+            
+            @if(count($errorDetails) > 10)
+            <div class="mt-4 text-center">
+                <p class="text-sm text-gray-600">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Mostrando todos os {{ count($errorDetails) }} erros. Role para ver mais.
+                </p>
+            </div>
+            @endif
+        </div>
+    </div>
+    @endif
+
     <!-- Import Details -->
     <div class="bg-white rounded-lg shadow-lg mb-6">
         <div class="px-6 py-4 border-b border-gray-200">

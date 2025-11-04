@@ -57,6 +57,17 @@ class WorkShiftTemplate extends Model
     }
 
     /**
+     * Relacionamento many-to-many com vínculos através das atribuições
+     */
+    public function employeeRegistrations(): BelongsToMany
+    {
+        return $this->belongsToMany(EmployeeRegistration::class, 'employee_work_shift_assignments', 'template_id', 'employee_registration_id')
+            ->withPivot(['cycle_start_date', 'effective_from', 'effective_until', 'assigned_by', 'assigned_at'])
+            ->withTimestamps();
+    }
+
+    /**
+     * DEPRECATED: Mantido por compatibilidade - usar employeeRegistrations()
      * Relacionamento many-to-many com colaboradores através das atribuições
      */
     public function employees(): BelongsToMany

@@ -2,167 +2,207 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Employee;
+use App\Models\Person;
+use App\Models\EmployeeRegistration;
 use App\Services\TimesheetGeneratorService;
+use App\Services\ZipService;
 use Illuminate\Http\Request;
 
 class TimesheetController extends Controller
 {
-    public function index()
+    protected TimesheetGeneratorService $timesheetService;
+    protected ZipService $zipService;
+
+    public function __construct(TimesheetGeneratorService $timesheetService, ZipService $zipService)
     {
-        $departments = \App\Models\Department::with('establishment')
-            ->orderBy('name')
-            ->get();
-        
-        return view('timesheets.index', compact('departments'));
+        $this->timesheetService = $timesheetService;
+        $this->zipService = $zipService;
     }
 
-    public function generate(Request $request)
+    /**
+     * Tela inicial: buscar pessoa por CPF ou Nome
+     */
+    public function index()
+    {
+        return view('timesheets.index');
+    }
+
+    /**
+     * Busca pessoa por CPF ou Nome e retorna seus vínculos
+     */
+    public function searchPerson(Request $request)
     {
         $request->validate([
-            'department_id' => 'required|exists:departments,id',
-            'employee_ids' => 'required|array|min:1',
-            'employee_ids.*' => 'exists:employees,id',
+            'search' => 'required|string|min:3',
+        ], [
+            'search.required' => 'Por favor, informe um CPF ou Nome para buscar.',
+            'search.min' => 'Digite pelo menos 3 caracteres.',
+        ]);
+
+        $search = $request->input('search');
+        
+        // Limpar CPF (remover pontuação)
+        $cleanSearch = preg_replace('/[^0-9]/', '', $search);
+
+        // Buscar por CPF (exato) ou Nome (parcial)
+        $people = Person::with(['activeRegistrations.department', 'activeRegistrations.establishment'])
+            ->where(function ($query) use ($search, $cleanSearch) {
+                // Busca por CPF
+                if (strlen($cleanSearch) >= 11) {
+                    $query->where('cpf', $cleanSearch);
+                } else {
+                    // Busca por nome
+                    $query->where('full_name', 'ILIKE', "%{$search}%");
+                }
+            })
+            ->get();
+
+        if ($people->isEmpty()) {
+            return back()->with('error', 'Nenhuma pessoa encontrada com os critérios informados.');
+        }
+
+        // Se encontrou apenas uma pessoa, vai direto para seleção de vínculos
+        if ($people->count() === 1) {
+            return view('timesheets.select-registrations', [
+                'person' => $people->first(),
+            ]);
+        }
+
+        // Se encontrou múltiplas pessoas, exibe lista para escolha
+        return view('timesheets.select-person', [
+            'people' => $people,
+        ]);
+    }
+
+    /**
+     * Exibe vínculos de uma pessoa específica para seleção
+     */
+    public function showPersonRegistrations(Person $person)
+    {
+        $person->load(['activeRegistrations.department', 'activeRegistrations.establishment', 'activeRegistrations.currentWorkShiftAssignment.template']);
+
+        return view('timesheets.select-registrations', [
+            'person' => $person,
+        ]);
+    }
+
+    /**
+     * Gera cartões de ponto para os vínculos selecionados
+     */
+    public function generateMultiple(Request $request)
+    {
+        $request->validate([
+            'person_id' => 'required|exists:people,id',
+            'registration_ids' => 'required|array|min:1',
+            'registration_ids.*' => 'exists:employee_registrations,id',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
         ], [
-            'department_id.required' => 'Por favor, selecione um departamento.',
-            'employee_ids.required' => 'Por favor, selecione pelo menos um colaborador.',
-            'employee_ids.min' => 'Por favor, selecione pelo menos um colaborador.',
+            'registration_ids.required' => 'Por favor, selecione pelo menos um vínculo.',
+            'registration_ids.min' => 'Por favor, selecione pelo menos um vínculo.',
             'start_date.required' => 'Por favor, informe a data inicial.',
             'end_date.required' => 'Por favor, informe a data final.',
             'end_date.after_or_equal' => 'A data final deve ser igual ou posterior à data inicial.',
         ]);
 
-        // Se apenas um colaborador, redireciona direto para a visualização
-        if (count($request->employee_ids) === 1) {
-            return redirect()->route('timesheets.show', [
-                'employee_id' => $request->employee_ids[0],
+        $person = Person::findOrFail($request->person_id);
+        $registrations = EmployeeRegistration::with(['person', 'establishment', 'department', 'currentWorkShiftAssignment.template'])
+            ->whereIn('id', $request->registration_ids)
+            ->get();
+
+        if ($registrations->isEmpty()) {
+            return back()->with('error', 'Nenhum vínculo encontrado.');
+        }
+
+        // Se apenas um vínculo, redireciona para visualização individual
+        if ($registrations->count() === 1) {
+            return redirect()->route('timesheets.show-registration', [
+                'registration' => $registrations->first()->id,
                 'start_date' => $request->start_date,
                 'end_date' => $request->end_date,
             ]);
         }
 
-        // Múltiplos colaboradores: gerar PDF zip ou listagem
-        return redirect()->route('timesheets.show', [
-            'employee_ids' => implode(',', $request->employee_ids),
-            'start_date' => $request->start_date,
-            'end_date' => $request->end_date,
-        ]);
+        // Múltiplos vínculos: gerar ZIP com PDFs
+        return $this->generateZipForRegistrations($registrations, $request->start_date, $request->end_date, $person);
     }
 
-    public function show(Request $request)
+    /**
+     * Exibe cartão de ponto de um vínculo específico
+     */
+    public function showRegistration(Request $request, EmployeeRegistration $registration)
     {
-        // Caso 1: Um único colaborador (visualização individual)
-        if ($request->has('employee_id') && !$request->has('employee_ids')) {
-            $employee = Employee::with(['establishment', 'department'])->findOrFail($request->employee_id);
-            
-            $generator = new TimesheetGeneratorService();
-            $data = $generator->generate($employee, $request->start_date, $request->end_date);
+        $registration->load(['person', 'establishment', 'department', 'currentWorkShiftAssignment.template']);
 
-            return view('timesheets.show', $data);
-        }
+        $data = $this->timesheetService->generate(
+            $registration,
+            $request->start_date,
+            $request->end_date
+        );
 
-        // Caso 2: Múltiplos colaboradores (listagem para download)
-        $employeeIds = $request->input('employee_ids');
-        
-        // Se veio como string separada por vírgula, converte para array
-        if (is_string($employeeIds)) {
-            $employeeIds = explode(',', $employeeIds);
-        }
-
-        // Busca os colaboradores
-        $employees = Employee::with(['establishment', 'department'])
-            ->whereIn('id', $employeeIds)
-            ->orderBy('full_name')
-            ->get();
-
-        if ($employees->isEmpty()) {
-            abort(404, 'Nenhum colaborador encontrado.');
-        }
-
-        return view('timesheets.multiple', [
-            'employees' => $employees,
-            'start_date' => $request->start_date,
-            'end_date' => $request->end_date,
-        ]);
+        return view('timesheets.show', $data);
     }
 
-    public function downloadZip(Request $request)
+    /**
+     * Gera ZIP com PDFs de múltiplos vínculos
+     */
+    protected function generateZipForRegistrations($registrations, string $startDate, string $endDate, Person $person)
     {
-        $request->validate([
-            'employee_ids' => 'required|array|min:1',
-            'employee_ids.*' => 'exists:employees,id',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date',
-        ]);
+        $pdfs = [];
 
-        $employeeIds = $request->input('employee_ids');
-        
-        // Busca os colaboradores
-        $employees = Employee::with(['establishment', 'department'])
-            ->whereIn('id', $employeeIds)
-            ->orderBy('full_name')
-            ->get();
-
-        if ($employees->isEmpty()) {
-            return back()->with('error', 'Nenhum colaborador encontrado.');
-        }
-
-        // Cria um arquivo ZIP temporário
-        $zipFileName = 'cartoes_ponto_' . now()->format('Y-m-d_His') . '.zip';
-        $zipPath = storage_path('app/temp/' . $zipFileName);
-        
-        // Garante que o diretório temp existe
-        if (!file_exists(storage_path('app/temp'))) {
-            mkdir(storage_path('app/temp'), 0755, true);
-        }
-
-        $zip = new \ZipArchive();
-        
-        if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== true) {
-            return back()->with('error', 'Não foi possível criar o arquivo ZIP.');
-        }
-
-        $generator = new TimesheetGeneratorService();
-        
-        // Gera um PDF para cada colaborador
-        foreach ($employees as $employee) {
+        foreach ($registrations as $registration) {
             try {
-                $data = $generator->generate($employee, $request->start_date, $request->end_date);
-                
-                // Renderiza a view como HTML
+                // Gerar dados do cartão de ponto
+                $data = $this->timesheetService->generate($registration, $startDate, $endDate);
+
+                // Renderizar HTML
                 $html = view('timesheets.pdf', $data)->render();
-                
-                // Converte HTML para PDF usando DomPDF com otimizações
+
+                // Converter para PDF
                 $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html);
-                $pdf->setPaper('A4', 'portrait'); // Modo retrato (vertical)
+                $pdf->setPaper('A4', 'portrait');
                 $pdf->setOptions([
                     'isHtml5ParserEnabled' => true,
                     'isPhpEnabled' => true,
                     'isRemoteEnabled' => true,
                     'defaultFont' => 'Arial',
                     'dpi' => 96,
-                    'enable_php' => true,
-                    'enable_css_float' => true,
                 ]);
-                
-                // Adiciona o PDF ao ZIP
-                $fileName = $this->sanitizeFileName($employee->full_name) . '_' . 
-                           str_replace('-', '', $request->start_date) . '_' . 
-                           str_replace('-', '', $request->end_date) . '.pdf';
-                
-                $zip->addFromString($fileName, $pdf->output());
+
+                // Nome do arquivo
+                $fileName = $this->sanitizeFileName($registration->matricula . '_' . $registration->position) . 
+                           '_' . str_replace('-', '', $startDate) . 
+                           '_' . str_replace('-', '', $endDate) . '.pdf';
+
+                $pdfs[] = [
+                    'filename' => $fileName,
+                    'content' => $pdf->output(),
+                ];
+
             } catch (\Exception $e) {
-                // Log do erro mas continua com os próximos
-                \Log::error("Erro ao gerar PDF para {$employee->full_name}: {$e->getMessage()}");
+                \Log::error("Erro ao gerar PDF para vínculo {$registration->id}: {$e->getMessage()}");
             }
         }
 
-        $zip->close();
+        if (empty($pdfs)) {
+            return back()->with('error', 'Não foi possível gerar nenhum cartão de ponto.');
+        }
 
-        // Download do arquivo
-        return response()->download($zipPath, $zipFileName)->deleteFileAfterSend(true);
+        // Criar ZIP
+        $zipName = $this->sanitizeFileName($person->full_name) . '_cartoes_' . str_replace('-', '', $startDate);
+        $zipPath = $this->zipService->createZipFromPdfs($pdfs, $zipName);
+
+        // Download
+        return response()->download($zipPath, basename($zipPath))->deleteFileAfterSend(true);
+    }
+
+    /**
+     * DEPRECATED: Mantido por compatibilidade
+     * Use generateMultiple() para novo fluxo
+     */
+    public function downloadZip(Request $request)
+    {
+        return back()->with('error', 'Este método está depreciado. Use o novo fluxo de busca por pessoa.');
     }
 
     /**

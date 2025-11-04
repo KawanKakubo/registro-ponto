@@ -32,11 +32,29 @@ class Establishment extends Model
     }
 
     /**
-     * Relacionamento com colaboradores
+     * Relacionamento com colaboradores (DEPRECATED - use employeeRegistrations)
+     * @deprecated Usar employeeRegistrations() ao invés deste método
      */
     public function employees(): HasMany
     {
         return $this->hasMany(Employee::class);
+    }
+
+    /**
+     * Relacionamento com vínculos de colaboradores (EmployeeRegistrations)
+     * Este é o relacionamento atual que deve ser usado
+     */
+    public function employeeRegistrations(): HasMany
+    {
+        return $this->hasMany(EmployeeRegistration::class);
+    }
+
+    /**
+     * Relacionamento com vínculos ativos apenas
+     */
+    public function activeRegistrations(): HasMany
+    {
+        return $this->hasMany(EmployeeRegistration::class)->where('status', 'active');
     }
 
     /**

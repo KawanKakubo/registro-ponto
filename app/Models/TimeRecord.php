@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class TimeRecord extends Model
 {
     protected $fillable = [
-        'employee_id',
+        'employee_registration_id',
         'recorded_at',
         'record_date',
         'record_time',
@@ -25,11 +25,27 @@ class TimeRecord extends Model
     ];
 
     /**
-     * Relacionamento com colaborador
+     * Relacionamento com vínculo (matrícula)
+     */
+    public function employeeRegistration(): BelongsTo
+    {
+        return $this->belongsTo(EmployeeRegistration::class);
+    }
+
+    /**
+     * Relacionamento com pessoa (através do vínculo)
+     */
+    public function person(): BelongsTo
+    {
+        return $this->employeeRegistration->person();
+    }
+
+    /**
+     * DEPRECATED: Mantido por compatibilidade - usar employeeRegistration()
      */
     public function employee(): BelongsTo
     {
-        return $this->belongsTo(Employee::class);
+        return $this->employeeRegistration();
     }
 
     /**
@@ -41,10 +57,18 @@ class TimeRecord extends Model
     }
 
     /**
-     * Scope para filtrar por colaborador
+     * Scope para filtrar por vínculo (matrícula)
+     */
+    public function scopeForRegistration($query, $registrationId)
+    {
+        return $query->where('employee_registration_id', $registrationId);
+    }
+
+    /**
+     * DEPRECATED: Mantido por compatibilidade - usar scopeForRegistration()
      */
     public function scopeForEmployee($query, $employeeId)
     {
-        return $query->where('employee_id', $employeeId);
+        return $query->where('employee_registration_id', $employeeId);
     }
 }
