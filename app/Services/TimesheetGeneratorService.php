@@ -147,6 +147,8 @@ class TimesheetGeneratorService
                     'expected' => $expectedMinutes,
                     'overtime' => 0,
                     'absence' => $expectedMinutes,
+                    'inconsistency' => false,
+                    'incomplete_last' => null,
                 ];
             }
             
@@ -158,7 +160,11 @@ class TimesheetGeneratorService
             ];
         }
 
-        $workedMinutes = $this->calculateWorkedMinutes($records);
+    // Obter detalhes das batidas (inclui detecção de ímpar/inconsistência)
+    $workedDetail = $this->calculateWorkedMinutesDetailed($records);
+    $workedMinutes = $workedDetail['worked'];
+    $inconsistency = $workedDetail['incomplete'];
+    $incompleteLast = $workedDetail['last_unpaired_time'];
         
         if (!$expectedSchedule) {
             return [
@@ -177,6 +183,9 @@ class TimesheetGeneratorService
             'expected' => $expectedMinutes,
             'overtime' => $difference > 0 ? $difference : 0,
             'absence' => $difference < 0 ? abs($difference) : 0,
+            // Indica se há batida ímpar/inconsistente neste dia
+            'inconsistency' => $inconsistency,
+            'incomplete_last' => $incompleteLast,
         ];
     }
 
@@ -197,6 +206,41 @@ class TimesheetGeneratorService
         }
         
         return $totalMinutes;
+    }
+
+    /**
+     * Retorna detalhes do cálculo de minutos trabalhados incluindo
+     * indicação de batida ímpar (inconsistência) e horário da última batida não pareada
+     *
+     * @param \Illuminate\Support\Collection|array $records
+     * @return array [worked => int(mins), incomplete => bool, last_unpaired_time => string|null]
+     */
+    protected function calculateWorkedMinutesDetailed($records): array
+    {
+        $punches = $records->sortBy('recorded_at')->pluck('recorded_at')->toArray();
+        $totalMinutes = 0;
+
+        // Calcula em pares (entrada/saída)
+        for ($i = 0; $i < count($punches) - 1; $i += 2) {
+            if (isset($punches[$i + 1])) {
+                $entry = Carbon::parse($punches[$i]);
+                $exit = Carbon::parse($punches[$i + 1]);
+                $totalMinutes += $entry->diffInMinutes($exit, false);
+            }
+        }
+
+        $count = count($punches);
+        $incomplete = ($count % 2) !== 0;
+        $lastUnpaired = null;
+        if ($incomplete && $count > 0) {
+            $lastUnpaired = Carbon::parse($punches[$count - 1])->format('H:i');
+        }
+
+        return [
+            'worked' => $totalMinutes,
+            'incomplete' => $incomplete,
+            'last_unpaired_time' => $lastUnpaired,
+        ];
     }
 
     protected function calculateExpectedMinutes($schedule): int

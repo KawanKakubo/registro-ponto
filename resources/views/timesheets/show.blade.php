@@ -71,6 +71,7 @@
             margin-bottom: 2pt;
             line-height: 1.4;
             clear: none;
+            min-height: 12pt;
         }
         
         .info-label { 
@@ -81,6 +82,9 @@
         .info-value {
             display: inline;
             word-wrap: break-word;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
         }
         
         table { 
@@ -156,7 +160,7 @@
         
         .observations-box {
             border: 1pt solid #333;
-            min-height: 64pt;
+            min-height: 40pt;
             padding: 4pt;
             font-size: 8.5pt;
             width: 100%;
@@ -176,7 +180,7 @@
         }
         
         .signature-section { 
-            margin-top: 48pt;
+            margin-top: 24pt;
             width: 100%;
             page-break-inside: avoid;
             overflow: hidden;
@@ -255,7 +259,7 @@
         }
         
         .footer p {
-            margin: 2pt 0;
+            margin: 0;
         }
     </style>
 </head>
@@ -344,9 +348,11 @@
                 @php
                     $carbonDate = \Carbon\Carbon::parse($date);
                     $dayOfWeek = $daysOfWeek[$carbonDate->dayOfWeek];
-                    $punches = $records->sortBy('record_time')->pluck('record_time')->map(function($time) {
+                    // CORRIGIDO: usar 'recorded_at' em vez de 'record_time'
+                    $punches = $records->sortBy('recorded_at')->pluck('record_time')->map(function($time) {
                         return substr($time, 0, 5);
                     })->toArray();
+                    // Valores já vêm em MINUTOS do Service
                     $overtime = $calculations[$date]['overtime'] ?? 0;
                     $absence = $calculations[$date]['absence'] ?? 0;
                     $totalOvertimeMinutes += $overtime;
@@ -354,7 +360,12 @@
                 @endphp
                 
                 <tr>
-                    <td class="day-col border-right">{{ $carbonDate->format('d/m/y') }} ({{ $dayOfWeek }})</td>
+                    <td class="day-col border-right">
+                        {{ $carbonDate->format('d/m/y') }} ({{ $dayOfWeek }})
+                        @if(!empty($calculations[$date]['inconsistency']))
+                            <span title="Inconsistência: batida ímpar. Última batida não pareada: {{ $calculations[$date]['incomplete_last'] ?? 'N/A' }}" style="color: #d9534f; font-weight: bold; cursor: help;">*</span>
+                        @endif
+                    </td>
                     <td class="time-col">{{ $punches[0] ?? '' }}</td>
                     <td class="time-col">{{ $punches[1] ?? '' }}</td>
                     <td class="time-col">{{ $punches[2] ?? '' }}</td>
@@ -363,6 +374,7 @@
                     <td class="time-col">{{ $punches[5] ?? '' }}</td>
                     <td class="time-col">{{ $punches[6] ?? '' }}</td>
                     <td class="time-col border-right">{{ $punches[7] ?? '' }}</td>
+                    {{-- CORRIGIDO: valores já estão em minutos, não multiplicar por 60 --}}
                     <td class="hours-col border-right">{{ $overtime > 0 ? gmdate('H:i', $overtime * 60) : '' }}</td>
                     <td class="hours-col">{{ $absence > 0 ? gmdate('H:i', $absence * 60) : '' }}</td>
                 </tr>
@@ -370,6 +382,7 @@
 
             <tr class="total-row">
                 <td colspan="9" style="text-align: right; padding-right: 10px;" class="border-right"><strong>TOTAIS:</strong></td>
+                {{-- CORRIGIDO: valores já estão em minutos, não multiplicar por 60 --}}
                 <td class="hours-col border-right"><strong>{{ gmdate('H:i', $totalOvertimeMinutes * 60) }}</strong></td>
                 <td class="hours-col"><strong>{{ gmdate('H:i', $totalAbsenceMinutes * 60) }}</strong></td>
             </tr>
@@ -446,7 +459,7 @@
 
     <div class="signature-section {{ $isCompact ? 'compact' : '' }}">
         <div class="signature-box">
-            <div class="signature-line {{ $isCompact ? 'compact' : '' }}">Assinatura do Empregado</div>
+            <div class="signature-line {{ $isCompact ? 'compact' : '' }}">Assinatura do Colaborador</div>
         </div>
         <div class="signature-box">
             <div class="signature-line {{ $isCompact ? 'compact' : '' }}">Assinatura do Empregador</div>

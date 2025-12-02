@@ -10,7 +10,8 @@ use App\Http\Controllers\{
     AfdImportController,
     TimesheetController,
     AdminController,
-    DashboardController
+    DashboardController,
+    EmployeeReportController
 };
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Api\FilterController;
@@ -102,6 +103,17 @@ Route::prefix('employee-imports')->group(function () {
     Route::get('/{import}/errors', [EmployeeImportController::class, 'showErrors'])->name('employee-imports.errors');
 });
 
+// Importação de Vínculos e Jornadas (CSV Legado)
+Route::prefix('vinculo-imports')->name('vinculo-imports.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\VinculoImportController::class, 'index'])->name('index');
+    Route::get('/create', [\App\Http\Controllers\VinculoImportController::class, 'create'])->name('create');
+    Route::post('/', [\App\Http\Controllers\VinculoImportController::class, 'store'])->name('store');
+    Route::get('/{import}', [\App\Http\Controllers\VinculoImportController::class, 'show'])->name('show');
+    Route::get('/{import}/errors', [\App\Http\Controllers\VinculoImportController::class, 'showErrors'])->name('errors');
+    Route::get('/{import}/download', [\App\Http\Controllers\VinculoImportController::class, 'download'])->name('download');
+    Route::get('/{import}/download-errors', [\App\Http\Controllers\VinculoImportController::class, 'downloadErrors'])->name('download-errors');
+});
+
 // Cartão de Ponto (Novo Fluxo: Pessoa → Vínculos)
 Route::prefix('timesheets')->group(function () {
     Route::get('/', [TimesheetController::class, 'index'])->name('timesheets.index');
@@ -114,6 +126,13 @@ Route::prefix('timesheets')->group(function () {
     Route::post('/generate', [TimesheetController::class, 'generate'])->name('timesheets.generate');
     Route::get('/show', [TimesheetController::class, 'show'])->name('timesheets.show');
     Route::post('/download-zip', [TimesheetController::class, 'downloadZip'])->name('timesheets.download-zip');
+});
+
+// Relatórios
+Route::prefix('reports')->name('reports.')->group(function () {
+    // Relatório de Colaboradores
+    Route::get('/employees', [EmployeeReportController::class, 'index'])->name('employees.index');
+    Route::post('/employees/generate', [EmployeeReportController::class, 'generate'])->name('employees.generate');
 });
 
     // API para filtros em cascata

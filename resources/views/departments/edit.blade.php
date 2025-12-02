@@ -82,7 +82,7 @@
                         <i class="fas fa-users text-blue-600 text-2xl mr-3"></i>
                         <div>
                             <p class="text-sm text-gray-600">Colaboradores neste departamento</p>
-                            <p class="text-2xl font-bold text-gray-900">{{ $department->employees()->count() }}</p>
+                            <p class="text-2xl font-bold text-gray-900">{{ $department->employeeRegistrations()->count() }}</p>
                         </div>
                     </div>
                 </div>

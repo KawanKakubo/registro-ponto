@@ -42,7 +42,17 @@ class Person extends Model
      */
     public function setCpfAttribute($value): void
     {
-        $this->attributes['cpf'] = preg_replace('/[^0-9]/', '', $value);
+        // Se valor for vazio, null, ou false, manter como null
+        if (empty($value)) {
+            $this->attributes['cpf'] = null;
+            return;
+        }
+        
+        // Limpar formatação do CPF
+        $cleaned = preg_replace('/[^0-9]/', '', $value);
+        
+        // Se após limpar ficar vazio, salvar como null
+        $this->attributes['cpf'] = empty($cleaned) ? null : $cleaned;
     }
 
     /**
@@ -63,6 +73,13 @@ class Person extends Model
     public function getCpfFormattedAttribute(): string
     {
         $cpf = $this->cpf;
+        
+        // Se CPF for null ou vazio, retornar string vazia
+        if (empty($cpf)) {
+            return '';
+        }
+        
+        // Se tiver 11 dígitos, formatar
         if (strlen($cpf) == 11) {
             return sprintf(
                 '%s.%s.%s-%s',
@@ -72,6 +89,8 @@ class Person extends Model
                 substr($cpf, 9, 2)
             );
         }
+        
+        // Retornar sem formatação se não tiver 11 dígitos
         return $cpf;
     }
 

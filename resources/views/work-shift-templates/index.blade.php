@@ -77,15 +77,15 @@
                         @endif
                     </td>
                     <td class="px-6 py-4 text-center">
-                        <span class="inline-flex items-center justify-center w-8 h-8 rounded-full {{ $template->employees_count > 0 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-500' }} font-semibold">
-                            {{ $template->employees_count }}
+                        <span class="inline-flex items-center justify-center w-8 h-8 rounded-full {{ $template->employee_registrations_count > 0 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-500' }} font-semibold">
+                            {{ $template->employee_registrations_count }}
                         </span>
                     </td>
                     <td class="px-6 py-4 text-center">
                         <a href="{{ route('work-shift-templates.edit', $template) }}" class="text-yellow-600 hover:text-yellow-800 mr-3" title="Editar">
                             <i class="fas fa-edit"></i>
                         </a>
-                        @if($template->employees_count == 0)
+                        @if($template->employee_registrations_count == 0)
                             <form action="{{ route('work-shift-templates.destroy', $template) }}" method="POST" class="inline">
                                 @csrf
                                 @method('DELETE')

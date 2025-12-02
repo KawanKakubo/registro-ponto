@@ -67,14 +67,14 @@
         <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
             <h3 class="text-lg font-bold text-gray-900">
                 <i class="fas fa-users text-blue-600 mr-2"></i>Colaboradores
-                <span class="text-sm font-normal text-gray-600 ml-2">({{ $department->employees->count() }})</span>
+                <span class="text-sm font-normal text-gray-600 ml-2">({{ $department->employeeRegistrations->count() }})</span>
             </h3>
             <a href="{{ route('employees.create') }}" class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition text-sm">
                 <i class="fas fa-plus mr-2"></i>Novo Colaborador
             </a>
         </div>
         <div class="p-6">
-            @if($department->employees->count() > 0)
+            @if($department->employeeRegistrations->count() > 0)
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
@@ -92,20 +92,20 @@
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
-                            @foreach($department->employees as $emp)
+                            @foreach($department->employeeRegistrations as $registration)
                             <tr class="hover:bg-gray-50">
                                 <td class="px-4 py-3 whitespace-nowrap">
                                     <div class="flex items-center">
                                         <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xs mr-3">
-                                            {{ strtoupper(substr($emp->full_name, 0, 1)) }}
+                                            {{ strtoupper(substr($registration->person->full_name ?? 'N', 0, 1)) }}
                                         </div>
-                                        <span class="text-sm font-medium text-gray-900">{{ $emp->full_name }}</span>
+                                        <span class="text-sm font-medium text-gray-900">{{ $registration->person->full_name ?? 'N/A' }}</span>
                                     </div>
                                 </td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 font-mono">{{ $emp->cpf }}</td>
-                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $emp->position ?? '-' }}</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 font-mono">{{ $registration->person->cpf_formatted ?? '-' }}</td>
+                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{{ $registration->role ?? '-' }}</td>
                                 <td class="px-4 py-3 whitespace-nowrap text-center text-sm">
-                                    <a href="{{ route('employees.show', $emp) }}" class="inline-flex items-center px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition">
+                                    <a href="{{ route('employees.show', $registration->id) }}" class="inline-flex items-center px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition">
                                         <i class="fas fa-eye mr-1"></i>Ver
                                     </a>
                                 </td>
