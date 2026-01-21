@@ -46,7 +46,7 @@
             </div>
             <div>
                 <label class="text-sm font-semibold text-gray-600">Cadastrado em:</label>
-                <p class="text-gray-900">{{ $person->created_at->format('d/m/Y H:i') }}</p>
+                <p class="text-gray-900">{{ $person->created_at?->format('d/m/Y H:i') ?? 'Não informado' }}</p>
             </div>
         </div>
     </div>
@@ -139,11 +139,11 @@
                             </div>
                             <div>
                                 <span class="text-gray-600 font-semibold">Admissão:</span>
-                                <p class="text-gray-900">{{ $registration->admission_date->format('d/m/Y') }}</p>
+                                <p class="text-gray-900">{{ $registration->admission_date?->format('d/m/Y') ?? 'Não informado' }}</p>
                             </div>
                             <div>
                                 <span class="text-gray-600 font-semibold">Cadastrado em:</span>
-                                <p class="text-gray-900">{{ $registration->created_at->format('d/m/Y') }}</p>
+                                <p class="text-gray-900">{{ $registration->created_at?->format('d/m/Y') ?? 'Não informado' }}</p>
                             </div>
                         </div>
                     </div>
