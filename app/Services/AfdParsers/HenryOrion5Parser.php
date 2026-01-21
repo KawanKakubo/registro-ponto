@@ -110,8 +110,9 @@ class HenryOrion5Parser extends BaseAfdParser
             $employee = $this->findEmployee(null, $matricula, null);
             
             if (!$employee) {
-                $this->addError("Linha {$lineNumber}: Colaborador com matrícula '{$matricula}' não encontrado");
-                $this->skippedCount++;
+                // Adiciona à lista de pendentes ao invés de apenas registrar erro
+                $nsr = str_pad($lineNumber, 9, '0', STR_PAD_LEFT);
+                $this->addPendingEmployee($matricula, null, null, $recordedAt, $nsr, 'O5');
                 return;
             }
 

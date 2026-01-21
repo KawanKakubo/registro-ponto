@@ -123,24 +123,37 @@ class ImportEmployeesFromCsv implements ShouldQueue
                     continue;
                 }
 
-                // NOVA LÓGICA: Pessoa + Vínculo
-                DB::transaction(function () use ($data, &$results) {
-                    // PASSO 1: Buscar ou criar a PESSOA pelo CPF
+                // NOVA LÓGICA: Pessoa + Vínculo (APENAS VINCULA, NÃO CRIA PESSOAS)
+                $personNotFound = false;
+                
+                DB::transaction(function () use ($data, &$results, $lineNumber, &$personNotFound) {
+                    // PASSO 1: BUSCAR PESSOA EXISTENTE (NÃO CRIA)
+                    // Primeiro tenta pelo CPF, depois pelo PIS
                     $person = Person::where('cpf', $data['cpf'])->first();
+                    
+                    if (!$person && !empty($data['pis_pasep'])) {
+                        $person = Person::where('pis_pasep', $data['pis_pasep'])->first();
+                    }
 
-                    if ($person) {
-                        // Pessoa já existe, atualizar dados pessoais se necessário
-                        $person->update([
-                            'full_name' => $data['full_name'],
-                            'pis_pasep' => $data['pis_pasep'],
-                        ]);
-                    } else {
-                        // Criar nova Pessoa
-                        $person = Person::create([
-                            'cpf' => $data['cpf'],
-                            'full_name' => $data['full_name'],
-                            'pis_pasep' => $data['pis_pasep'],
-                        ]);
+                    if (!$person) {
+                        // Pessoa não encontrada - marcar flag para registrar erro
+                        $personNotFound = true;
+                        return; // Sai da transaction sem fazer nada
+                    }
+                    
+                    // Pessoa existe - atualizar dados se necessário
+                    $updateData = [];
+                    
+                    if (empty($person->cpf) && !empty($data['cpf'])) {
+                        $updateData['cpf'] = $data['cpf'];
+                    }
+                    
+                    if (empty($person->pis_pasep) && !empty($data['pis_pasep'])) {
+                        $updateData['pis_pasep'] = $data['pis_pasep'];
+                    }
+                    
+                    if (!empty($updateData)) {
+                        $person->update($updateData);
                     }
 
                     // PASSO 2: Buscar ou criar o VÍNCULO pela MATRÍCULA
@@ -171,6 +184,15 @@ class ImportEmployeesFromCsv implements ShouldQueue
                         $results['success']++;
                     }
                 });
+                
+                // Se pessoa não foi encontrada, registrar erro
+                if ($personNotFound) {
+                    $results['errors']++;
+                    $results['error_details'][] = [
+                        'line' => $lineNumber,
+                        'errors' => ["Colaborador não encontrado no sistema (CPF: {$data['cpf']}, PIS: {$data['pis_pasep']})"]
+                    ];
+                }
 
             } catch (\Exception $e) {
                 $results['errors']++;

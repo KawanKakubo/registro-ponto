@@ -1,203 +1,281 @@
-# 🔧 CORREÇÃO: Importação de Vínculos e Jornadas
+# ✅ CORREÇÃO - Importação de Vínculos (Interface Web)
 
-## �� Problemas Identificados
+## 🎯 Problema Identificado
 
-### 1. ❌ CPF Vazio Causando Erro de Constraint Única
+Na interface web de importação de vínculos (`http://127.0.0.1:8000/vinculo-imports`), o sistema estava **criando novos colaboradores** quando não encontrava uma pessoa com o CPF informado no CSV.
 
-**Erro:**
+**Comportamento anterior:**
+```php
+// Se pessoa não existe, criar
+$person = Person::create([
+    'cpf' => $data['cpf'],
+    'full_name' => $data['full_name'],
+    'pis_pasep' => $data['pis_pasep'],
+]);
 ```
-SQLSTATE[23505]: Unique violation: 7 ERRO: duplicar valor da chave viola a restrição de unicidade "people_cpf_unique"
-DETAIL: Chave (cpf)=() já existe.
-```
-
-**Causa:**
-- O Job estava criando pessoas com `cpf => null`
-- O mutador `setCpfAttribute()` da model Person transformava `null` em string vazia (`''`)
-- O PostgreSQL não permite múltiplas strings vazias na constraint única
-
-**Solução:**
-1. ✅ **Mutador atualizado** (`app/Models/Person.php`):
-   ```php
-   public function setCpfAttribute($value): void
-   {
-       if (empty($value)) {
-           $this->attributes['cpf'] = null;
-           return;
-       }
-       
-       $cleaned = preg_replace('/[^0-9]/', '', $value);
-       $this->attributes['cpf'] = empty($cleaned) ? null : $cleaned;
-   }
-   ```
-
-2. ✅ **Job atualizado** (`app/Jobs/ImportVinculosJob.php`):
-   - Removido `'cpf' => null` do array de criação
-   - Deixa o campo sem especificar para que seja `NULL` por padrão
-
-3. ✅ **Banco corrigido**:
-   - Registros com CPF vazio convertidos para NULL
-   - Índice parcial já estava correto: `WHERE cpf IS NOT NULL`
 
 ---
 
-### 2. ❌ Jornadas Não Associadas (jornadas_associadas = 0)
+## ✅ Correção Aplicada
 
-**Problema:**
-- CSV contém IDs de jornada: "7 - SAÚDE", "219 - SEC", etc.
-- Sistema extraía os IDs corretamente (7, 219, ...)
-- **MAS** não havia nenhum template cadastrado no banco
+**Arquivo modificado:** `app/Jobs/ImportEmployeesFromCsv.php`
+
+### Novo Comportamento
+
+Agora o sistema:
+
+1. ✅ **Busca a pessoa pelo CPF** (prioridade 1)
+2. ✅ **Se não encontrar, busca pelo PIS** (prioridade 2)
+3. ❌ **Se não encontrar, NÃO cria** - registra erro e pula a linha
+4. ✅ **Se encontrar, atualiza dados vazios** (CPF ou PIS faltantes)
+5. ✅ **Cria ou atualiza o vínculo** normalmente
+
+### Código Modificado
+
+```php
+// PASSO 1: BUSCAR PESSOA EXISTENTE (NÃO CRIA)
+// Primeiro tenta pelo CPF, depois pelo PIS
+$person = Person::where('cpf', $data['cpf'])->first();
+
+if (!$person && !empty($data['pis_pasep'])) {
+    $person = Person::where('pis_pasep', $data['pis_pasep'])->first();
+}
+
+if (!$person) {
+    // Pessoa não encontrada - registrar erro e pular
+    $errors[] = [
+        'line' => $lineNumber,
+        'errors' => ["Colaborador não encontrado no sistema (CPF: {$data['cpf']}, PIS: {$data['pis_pasep']})"]
+    ];
+    return; // Sai da transaction sem fazer nada
+}
+
+// Pessoa existe - atualizar dados se necessário
+$updateData = [];
+
+if (empty($person->cpf) && !empty($data['cpf'])) {
+    $updateData['cpf'] = $data['cpf'];
+}
+
+if (empty($person->pis_pasep) && !empty($data['pis_pasep'])) {
+    $updateData['pis_pasep'] = $data['pis_pasep'];
+}
+
+if (!empty($updateData)) {
+    $person->update($updateData);
+}
+
+// PASSO 2: Criar ou atualizar VÍNCULO (continua normal)
+```
+
+---
+
+## 📊 Impacto
+
+### Antes da Correção
+- ❌ Criava novas pessoas quando CPF não encontrado
+- ❌ Poderia duplicar colaboradores
+- ❌ Dados inconsistentes
+
+### Depois da Correção
+- ✅ Apenas vincula a colaboradores existentes
+- ✅ Registra erro quando colaborador não existe
+- ✅ Evita duplicação de dados
+- ✅ Usuário é informado sobre colaboradores não encontrados
+
+---
+
+## 🧪 Como Testar
+
+### 1. Preparar CSV de Teste
+
+Crie um arquivo `teste-vinculos.csv` com:
+
+```csv
+cpf,full_name,pis_pasep,matricula,establishment_id,department_id,admission_date,role
+12345678901,João da Silva,10987654321,5001,1,5,2024-01-10,PROFESSOR
+99999999999,Maria Inexistente,88888888888,5002,1,5,2024-01-10,PROFESSOR
+```
+
+**Resultado esperado:**
+- ✅ **Linha 1:** Vínculo criado (se João existe no banco)
+- ❌ **Linha 1:** Erro (se João não existe)
+- ❌ **Linha 2:** Erro "Colaborador não encontrado"
+
+### 2. Acessar Interface
+
+```
+http://127.0.0.1:8000/vinculo-imports/create
+```
+
+### 3. Fazer Upload
+
+1. Selecionar o arquivo CSV
+2. Clicar em "Importar"
+3. Aguardar processamento
+
+### 4. Verificar Resultados
+
+Na página de resultados, você verá:
+
+```
+📊 RESUMO DA IMPORTAÇÃO
+
+✅ Vínculos criados: 1
+⚠️  Erros: 1
+
+❌ ERROS ENCONTRADOS:
+Linha 2: Colaborador não encontrado no sistema (CPF: 99999999999, PIS: 88888888888)
+```
+
+---
+
+## 🔍 Verificação no Banco
+
+```bash
+# Contar pessoas ANTES
+php artisan tinker --execute="echo 'Pessoas: '.App\Models\Person::count();"
+
+# Fazer importação via web
+
+# Contar pessoas DEPOIS
+php artisan tinker --execute="echo 'Pessoas: '.App\Models\Person::count();"
+```
+
+**Resultado esperado:** O número de pessoas deve **permanecer o mesmo** se todos os CPFs não existirem, ou aumentar **zero** mesmo com importação bem-sucedida.
+
+---
+
+## 📝 Mensagens de Erro
+
+### Para o Usuário
+
+Quando um colaborador não é encontrado, o sistema exibe:
+
+```
+⚠️  Linha X: Colaborador não encontrado no sistema
+CPF: XXX.XXX.XXX-XX
+PIS: XXXXXXXXXXX
+```
+
+### Nos Logs
+
+```
+ERROR: Colaborador não encontrado no sistema (CPF: 12345678901, PIS: 10987654321)
+```
+
+---
+
+## �� Recomendações
+
+### Se Muitos Colaboradores Não Forem Encontrados
+
+**Opção 1:** Cadastrar colaboradores primeiro
+1. Criar os colaboradores via interface de RH
+2. Depois importar os vínculos
+
+**Opção 2:** Importar lista completa de colaboradores
+1. Use o seeder: `php artisan db:seed --class=EmployeesFromCsvSeeder`
+2. Depois importe os vínculos pela web
+
+**Opção 3:** Verificar CPFs no CSV
+- Conferir se os CPFs estão corretos
+- Verificar formatação (com/sem pontos e traço)
+- Conferir se não há espaços extras
+
+---
+
+## 🎯 Casos de Uso
+
+### ✅ Caso 1: Colaborador Existe no Banco
+
+**CSV:**
+```csv
+cpf,full_name,...
+12345678901,João da Silva,...
+```
+
+**Banco:**
+- Pessoa existe com CPF: 12345678901
 
 **Resultado:**
-```
-Total de templates: 0
-Jornadas associadas: 0
-```
-
-**Solução:**
-1. ✅ **Comando Artisan criado** (`app/Console/Commands/ImportWorkShiftTemplatesFromCsv.php`):
-   ```bash
-   php artisan vinculos:import-templates caminho/do/arquivo.csv
-   ```
-
-2. ✅ **Templates criados**:
-   - 107 jornadas únicas identificadas no CSV
-   - 106 templates criados automaticamente
-   - Tipo: `weekly` (padrão)
-   - Carga horária: 40h (padrão)
-
-3. ⚠️ **Ação necessária**:
-   - Acessar `/work-shift-templates`
-   - Configurar horários específicos de cada jornada
-   - Atualizar descrições conforme necessário
+- ✅ Vínculo criado/atualizado
+- ✅ Dados da pessoa atualizados (se necessário)
 
 ---
 
-### 3. ❌ Registro de Importação Não Atualizado
+### ✅ Caso 2: Colaborador Existe (Busca por PIS)
 
-**Problema:**
-- Job processava a importação
-- Salvava resultados em JSON
-- **MAS** não atualizava o registro no banco (`vinculo_imports`)
-
-**Solução:**
-✅ **Método `saveResults()` atualizado**:
-```php
-DB::table('vinculo_imports')
-    ->where('id', $this->importId)
-    ->update([
-        'pessoas_criadas' => $results['pessoas_criadas'],
-        'pessoas_atualizadas' => $results['pessoas_atualizadas'],
-        'vinculos_criados' => $results['vinculos_criados'],
-        'vinculos_atualizados' => $results['vinculos_atualizados'],
-        'jornadas_associadas' => $results['jornadas_associadas'],
-        'erros' => count($errorDetails),
-        'status' => 'completed',
-        'completed_at' => now(),
-    ]);
+**CSV:**
+```csv
+cpf,full_name,pis_pasep,...
+99999999999,Maria Santos,10987654321,...
 ```
 
-✅ **Tratamento de erro adicionado**:
-- Status 'failed' em caso de exceção
-- Mensagem de erro salva no banco
+**Banco:**
+- Pessoa existe com PIS: 10987654321 (mas CPF diferente ou vazio)
+
+**Resultado:**
+- ✅ Vínculo criado/atualizado
+- ✅ CPF atualizado na pessoa
 
 ---
 
-## 🎯 Resultado Esperado Após Correções
+### ❌ Caso 3: Colaborador Não Existe
 
-### Antes:
-```
-Taxa de Sucesso: 55.5%
-Erros: 428
-Pessoas Criadas: 0
-Vínculos Criados: 0
-Jornadas Associadas: 0
+**CSV:**
+```csv
+cpf,full_name,...
+88888888888,Pedro Novo,...
 ```
 
-### Depois:
+**Banco:**
+- Pessoa NÃO existe (nem por CPF, nem por PIS)
+
+**Resultado:**
+- ❌ Erro registrado
+- ❌ Vínculo NÃO criado
+- ❌ Pessoa NÃO criada
+
+---
+
+## 📋 Checklist de Validação
+
+Após a correção, verificar:
+
+- [x] Job modificado (ImportEmployeesFromCsv.php)
+- [x] Busca por CPF implementada
+- [x] Busca por PIS implementada (fallback)
+- [x] Erro registrado quando pessoa não encontrada
+- [x] Transaction não cria pessoa nova
+- [x] Atualização de dados vazios funciona
+- [x] Criação de vínculo funciona
+- [x] Atualização de vínculo funciona
+- [x] Mensagem de erro clara para usuário
+- [x] Log de erro detalhado
+
+---
+
+## 🚀 Arquivos Modificados
+
 ```
-Taxa de Sucesso: ~99%
-Erros: 1 (somente linha 3 sem matrícula)
-Pessoas Criadas: ~533
-Vínculos Criados: ~533  
-Jornadas Associadas: ~533
+app/Jobs/ImportEmployeesFromCsv.php
+├─ Linha ~127-155: Busca de pessoa modificada
+└─ Adicionado: Erro quando pessoa não encontrada
 ```
 
 ---
 
-## 📝 Arquivos Modificados
+## 📞 Próximos Passos
 
-1. ✅ `app/Models/Person.php`
-   - Mutador `setCpfAttribute()` corrigido
-
-2. ✅ `app/Jobs/ImportVinculosJob.php`
-   - Criação de pessoa sem CPF explícito
-   - Atualização do registro de importação
-   - Tratamento de erro melhorado
-
-3. ✅ `app/Console/Commands/ImportWorkShiftTemplatesFromCsv.php` (NOVO)
-   - Comando para criar templates a partir do CSV
+1. ✅ **Testar em ambiente de desenvolvimento**
+2. ⏳ **Importar colaboradores existentes** (se necessário)
+3. ⏳ **Testar importação de vínculos via web**
+4. ⏳ **Validar mensagens de erro**
+5. ⏳ **Deploy em produção**
 
 ---
 
-## 🚀 Como Executar Nova Importação
-
-### Passo 1: Limpar Dados Antigos (Opcional)
-```bash
-php artisan tinker
-
-# Deletar importações anteriores
-DB::table('vinculo_imports')->truncate();
-DB::table('employee_registrations')->truncate();
-DB::table('people')->truncate();
-```
-
-### Passo 2: Verificar Templates
-```bash
-php artisan tinker
-echo DB::table('work_shift_templates')->count();
-# Deve retornar: 106 ou mais
-```
-
-### Passo 3: Fazer Upload
-- Acessar: `/vinculo-imports/create`
-- Selecionar arquivo CSV
-- Clicar "Iniciar Importação"
-
-### Passo 4: Processar Fila (se necessário)
-```bash
-php artisan queue:work --once
-```
-
-### Passo 5: Verificar Resultados
-- Acessar: `/vinculo-imports/{id}`
-- Conferir estatísticas
-- Baixar relatório de erros (se houver)
-
----
-
-## ✅ Checklist de Verificação
-
-- [x] Mutador Person::setCpfAttribute() corrigido
-- [x] Job ImportVinculosJob atualizado
-- [x] Comando import-templates criado
-- [x] 106 templates de jornada cadastrados
-- [x] Atualização do registro de importação implementada
-- [x] Tratamento de erro adicionado
-- [ ] Nova importação executada
-- [ ] Resultados verificados
-- [ ] Templates de jornada configurados
-
----
-
-## 📚 Documentos Relacionados
-
-- `IMPORTACAO_VINCULOS_JORNADAS.md` - Documentação completa do sistema
-- `ENTREGA_IMPORTACAO_VINCULOS.md` - Entrega original do sistema
-- `CORRECAO_CONSTRAINT_CPF.md` - Correção da constraint de CPF
-- `GUIA_RAPIDO_IMPORTACAO_VINCULOS.md` - Guia rápido de uso
-
----
-
-**Data da Correção:** 2025-11-05
-**Versão:** 2.0
-**Status:** ✅ Corrigido e Testado
+**Data da Correção:** 02/12/2025  
+**Arquivo:** `app/Jobs/ImportEmployeesFromCsv.php`  
+**Comportamento:** ✅ Não cria mais colaboradores novos - apenas vincula aos existentes

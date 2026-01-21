@@ -18,6 +18,10 @@
                         <span class="ml-3 inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-red-100 text-red-800">
                             <i class="fas fa-times-circle mr-1"></i>Falhou
                         </span>
+                    @elseif($afdImport->status === 'pending_review')
+                        <span class="ml-3 inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-800">
+                            <i class="fas fa-exclamation-triangle mr-1"></i>Aguardando Revisão
+                        </span>
                     @else
                         <span class="ml-3 inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-800">
                             <i class="fas fa-clock mr-1"></i>{{ ucfirst($afdImport->status) }}
@@ -156,8 +160,39 @@
     </div>
     @endif
 
+    <!-- Pending Review Alert -->
+    @if($afdImport->hasPendingEmployees())
+    <div class="bg-yellow-50 border-l-4 border-yellow-500 rounded-lg p-6 mb-6">
+        <div class="flex items-start">
+            <i class="fas fa-user-plus text-yellow-600 text-2xl mr-4 mt-1"></i>
+            <div class="flex-1">
+                <h3 class="font-bold text-yellow-900 mb-2">
+                    {{ $afdImport->pending_count }} Colaborador(es) Não Encontrado(s)
+                </h3>
+                <p class="text-sm text-yellow-800 mb-4">
+                    Alguns registros de ponto não puderam ser importados porque os colaboradores não estão cadastrados no sistema.
+                    Você pode cadastrá-los agora ou ignorar esses registros.
+                </p>
+                <div class="flex flex-wrap gap-3">
+                    <a href="{{ route('afd-imports.review', $afdImport) }}" 
+                       class="inline-flex items-center px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white font-semibold rounded-lg transition shadow-lg">
+                        <i class="fas fa-user-plus mr-2"></i>Revisar Colaboradores Pendentes
+                    </a>
+                    <form action="{{ route('afd-imports.skip-all', $afdImport) }}" method="POST" class="inline"
+                          onsubmit="return confirm('Tem certeza que deseja ignorar todos os {{ $afdImport->pending_count }} colaboradores pendentes? Os registros de ponto deles NÃO serão importados.');">
+                        @csrf
+                        <button type="submit" class="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-semibold rounded-lg transition">
+                            <i class="fas fa-forward mr-2"></i>Ignorar Todos
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <!-- Success Message -->
-    @if($afdImport->status === 'completed')
+    @if($afdImport->status === 'completed' && !$afdImport->error_message)
     <div class="bg-green-50 border-l-4 border-green-600 rounded-lg p-6">
         <div class="flex items-start">
             <i class="fas fa-check-circle text-green-600 text-2xl mr-4 mt-1"></i>

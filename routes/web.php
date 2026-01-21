@@ -90,6 +90,12 @@ Route::prefix('afd-imports')->group(function () {
     Route::get('/create', [AfdImportController::class, 'create'])->name('afd-imports.create');
     Route::post('/', [AfdImportController::class, 'store'])->name('afd-imports.store');
     Route::get('/{afdImport}', [AfdImportController::class, 'show'])->name('afd-imports.show');
+    
+    // Rotas de revisão de colaboradores pendentes
+    Route::get('/{afdImport}/review', [AfdImportController::class, 'review'])->name('afd-imports.review');
+    Route::post('/{afdImport}/register/{employeeKey}', [AfdImportController::class, 'registerEmployee'])->name('afd-imports.register-employee');
+    Route::post('/{afdImport}/skip/{employeeKey}', [AfdImportController::class, 'skipEmployee'])->name('afd-imports.skip-employee');
+    Route::post('/{afdImport}/skip-all', [AfdImportController::class, 'skipAll'])->name('afd-imports.skip-all');
 });
 
 // Importação de Colaboradores (CSV)

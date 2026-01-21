@@ -22,8 +22,8 @@
                     <p class="text-blue-100 text-sm font-medium mb-1">Total</p>
                     <p class="text-3xl font-bold">{{ $stats['total'] }}</p>
                 </div>
-                <div class="bg-white bg-opacity-20 rounded-full p-4">
-                    <i class="fas fa-sitemap text-2xl"></i>
+                <div class="bg-blue-700 bg-opacity-50 rounded-full p-4">
+                    <i class="fas fa-sitemap text-2xl text-white"></i>
                 </div>
             </div>
         </div>
@@ -34,20 +34,20 @@
                     <p class="text-green-100 text-sm font-medium mb-1">Com Vínculos</p>
                     <p class="text-3xl font-bold">{{ $stats['with_registrations'] }}</p>
                 </div>
-                <div class="bg-white bg-opacity-20 rounded-full p-4">
-                    <i class="fas fa-user-check text-2xl"></i>
+                <div class="bg-green-700 bg-opacity-50 rounded-full p-4">
+                    <i class="fas fa-user-check text-2xl text-white"></i>
                 </div>
             </div>
         </div>
 
-        <div class="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg shadow-lg p-6 text-white">
+        <div class="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg shadow-lg p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-indigo-100 text-sm font-medium mb-1">Total Vínculos</p>
-                    <p class="text-3xl font-bold">{{ $stats['total_registrations'] }}</p>
+                    <p class="text-yellow-900 text-sm font-medium mb-1">Total Vínculos</p>
+                    <p class="text-3xl font-bold text-white">{{ $stats['total_registrations'] }}</p>
                 </div>
-                <div class="bg-white bg-opacity-20 rounded-full p-4">
-                    <i class="fas fa-users text-2xl"></i>
+                <div class="bg-yellow-700 bg-opacity-50 rounded-full p-4">
+                    <i class="fas fa-users text-2xl text-white"></i>
                 </div>
             </div>
         </div>
@@ -58,8 +58,8 @@
                     <p class="text-purple-100 text-sm font-medium mb-1">Vínculos Ativos</p>
                     <p class="text-3xl font-bold">{{ $stats['active_registrations'] }}</p>
                 </div>
-                <div class="bg-white bg-opacity-20 rounded-full p-4">
-                    <i class="fas fa-user-friends text-2xl"></i>
+                <div class="bg-purple-700 bg-opacity-50 rounded-full p-4">
+                    <i class="fas fa-user-friends text-2xl text-white"></i>
                 </div>
             </div>
         </div>
@@ -70,8 +70,8 @@
                     <p class="text-orange-100 text-sm font-medium mb-1">Estabelecimentos</p>
                     <p class="text-3xl font-bold">{{ $stats['establishments'] }}</p>
                 </div>
-                <div class="bg-white bg-opacity-20 rounded-full p-4">
-                    <i class="fas fa-building text-2xl"></i>
+                <div class="bg-orange-700 bg-opacity-50 rounded-full p-4">
+                    <i class="fas fa-building text-2xl text-white"></i>
                 </div>
             </div>
         </div>

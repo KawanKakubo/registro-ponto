@@ -191,8 +191,8 @@ class HenryPrismaParser extends BaseAfdParser
             $employee = $this->findEmployee($pis, null, null);
             
             if (!$employee) {
-                $this->addError("Linha {$lineNumber}: Colaborador com PIS {$pis} não encontrado");
-                $this->skippedCount++;
+                // Adiciona à lista de pendentes ao invés de apenas registrar erro
+                $this->addPendingEmployee(null, $pis, null, $recordedAt, $nsr, '3');
                 return;
             }
 

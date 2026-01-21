@@ -164,8 +164,8 @@ class DixiParser extends BaseAfdParser
             $employee = $this->findEmployee(null, null, $cpf);
             
             if (!$employee) {
-                $this->addError("Linha {$lineNumber}: Colaborador com CPF {$cpf} não encontrado");
-                $this->skippedCount++;
+                // Adiciona à lista de pendentes ao invés de apenas registrar erro
+                $this->addPendingEmployee(null, null, $cpf, $recordedAt, $nsr, '3');
                 return;
             }
 
@@ -203,8 +203,8 @@ class DixiParser extends BaseAfdParser
             $employee = $this->findEmployee(null, null, $cpf);
             
             if (!$employee) {
-                $this->addError("Linha {$lineNumber}: Colaborador com CPF {$cpf} não encontrado");
-                $this->skippedCount++;
+                // Adiciona à lista de pendentes ao invés de apenas registrar erro
+                $this->addPendingEmployee(null, null, $cpf, $recordedAt, $nsr, '7');
                 return;
             }
 

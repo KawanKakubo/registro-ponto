@@ -34,8 +34,8 @@ class EmployeesFromCsvSeeder extends Seeder
         $header = fgetcsv($handle, 1000, ',');
         
         $stats = [
-            'pessoas_criadas' => 0,
-            'pessoas_existentes' => 0,
+            'pessoas_encontradas' => 0,
+            'pessoas_nao_encontradas' => 0,
             'vinculos_criados' => 0,
             'vinculos_atualizados' => 0,
             'erros' => 0,
@@ -86,7 +86,7 @@ class EmployeesFromCsvSeeder extends Seeder
                         }
                     }
                     
-                    // Buscar ou criar PESSOA
+                    // BUSCAR PESSOA EXISTENTE (NÃO CRIA NOVAS)
                     // Primeiro tenta pelo CPF, depois pelo PIS
                     $person = Person::where('cpf', $rowData['cpf'])->first();
                     
@@ -95,22 +95,31 @@ class EmployeesFromCsvSeeder extends Seeder
                     }
                     
                     if (!$person) {
-                        // Criar nova pessoa
-                        $person = Person::create([
-                            'full_name' => $rowData['full_name'],
-                            'cpf' => $rowData['cpf'],
-                            'pis_pasep' => $rowData['pis_pasep'],
-                        ]);
-                        $stats['pessoas_criadas']++;
-                        
-                        $this->command->info("✅ Pessoa criada: {$person->full_name} (CPF: {$rowData['cpf']})");
-                    } else {
-                        $stats['pessoas_existentes']++;
-                        
-                        // Atualizar PIS se não existir
-                        if (empty($person->pis_pasep) && !empty($rowData['pis_pasep'])) {
-                            $person->update(['pis_pasep' => $rowData['pis_pasep']]);
-                        }
+                        // Pessoa não encontrada - pular esta linha
+                        $errors[] = "Linha {$stats['linhas_processadas']}: Colaborador não encontrado (CPF: {$rowData['cpf']}, PIS: {$rowData['pis_pasep']})";
+                        $stats['erros']++;
+                        $stats['pessoas_nao_encontradas']++;
+                        $this->command->warn("⚠️  Linha {$stats['linhas_processadas']}: Colaborador {$rowData['full_name']} não encontrado - vínculo não criado");
+                        DB::rollBack();
+                        continue;
+                    }
+                    
+                    $stats['pessoas_encontradas']++;
+                    
+                    // Atualizar dados da pessoa se necessário
+                    $updateData = [];
+                    
+                    if (empty($person->cpf) && !empty($rowData['cpf'])) {
+                        $updateData['cpf'] = $rowData['cpf'];
+                    }
+                    
+                    if (empty($person->pis_pasep) && !empty($rowData['pis_pasep'])) {
+                        $updateData['pis_pasep'] = $rowData['pis_pasep'];
+                    }
+                    
+                    if (!empty($updateData)) {
+                        $person->update($updateData);
+                        $this->command->comment("   └─ Dados da pessoa atualizados");
                     }
                     
                     // Buscar ou criar VÍNCULO
@@ -166,8 +175,8 @@ class EmployeesFromCsvSeeder extends Seeder
                 ['Métrica', 'Quantidade'],
                 [
                     ['Linhas processadas', $stats['linhas_processadas']],
-                    ['Pessoas criadas', $stats['pessoas_criadas']],
-                    ['Pessoas já existentes', $stats['pessoas_existentes']],
+                    ['Pessoas encontradas', $stats['pessoas_encontradas']],
+                    ['Pessoas NÃO encontradas', $stats['pessoas_nao_encontradas']],
                     ['Vínculos criados', $stats['vinculos_criados']],
                     ['Vínculos atualizados', $stats['vinculos_atualizados']],
                     ['Erros', $stats['erros']],

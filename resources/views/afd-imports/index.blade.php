@@ -15,15 +15,15 @@
     </div>
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-6">
         <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-blue-100 text-sm font-medium mb-1">Total</p>
                     <p class="text-3xl font-bold">{{ $stats['total'] }}</p>
                 </div>
-                <div class="bg-white/20 rounded-full p-4">
-                    <i class="fas fa-file-import text-2xl"></i>
+                <div class="bg-blue-700 bg-opacity-50 rounded-full p-4">
+                    <i class="fas fa-file-import text-2xl text-white"></i>
                 </div>
             </div>
         </div>
@@ -34,20 +34,32 @@
                     <p class="text-green-100 text-sm font-medium mb-1">Concluídas</p>
                     <p class="text-3xl font-bold">{{ $stats['completed'] }}</p>
                 </div>
-                <div class="bg-white/20 rounded-full p-4">
-                    <i class="fas fa-check-circle text-2xl"></i>
+                <div class="bg-green-700 bg-opacity-50 rounded-full p-4">
+                    <i class="fas fa-check-circle text-2xl text-white"></i>
                 </div>
             </div>
         </div>
 
-        <div class="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg shadow-lg p-6 text-white">
+        <div class="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg shadow-lg p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-yellow-100 text-sm font-medium mb-1">Pendentes</p>
+                    <p class="text-yellow-900 text-sm font-medium mb-1">Aguardando Revisão</p>
+                    <p class="text-3xl font-bold text-white">{{ $stats['pending_review'] ?? 0 }}</p>
+                </div>
+                <div class="bg-yellow-700 bg-opacity-50 rounded-full p-4">
+                    <i class="fas fa-user-plus text-2xl text-white"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-orange-100 text-sm font-medium mb-1">Processando</p>
                     <p class="text-3xl font-bold">{{ $stats['pending'] }}</p>
                 </div>
-                <div class="bg-white/20 rounded-full p-4">
-                    <i class="fas fa-clock text-2xl"></i>
+                <div class="bg-orange-700 bg-opacity-50 rounded-full p-4">
+                    <i class="fas fa-clock text-2xl text-white"></i>
                 </div>
             </div>
         </div>
@@ -58,8 +70,8 @@
                     <p class="text-red-100 text-sm font-medium mb-1">Com Erro</p>
                     <p class="text-3xl font-bold">{{ $stats['failed'] }}</p>
                 </div>
-                <div class="bg-white/20 rounded-full p-4">
-                    <i class="fas fa-exclamation-circle text-2xl"></i>
+                <div class="bg-red-700 bg-opacity-50 rounded-full p-4">
+                    <i class="fas fa-exclamation-circle text-2xl text-white"></i>
                 </div>
             </div>
         </div>
@@ -123,14 +135,23 @@
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
                                     <i class="fas fa-times-circle mr-2"></i>Erro
                                 </span>
-                            @else
+                            @elseif($import->status == 'pending_review')
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                                    <i class="fas fa-exclamation-triangle mr-2"></i>Revisão ({{ $import->pending_count }})
+                                </span>
+                            @else
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
                                     <i class="fas fa-clock mr-2"></i>Processando
                                 </span>
                             @endif
                         </td>
                         <td class="px-6 py-4">
                             <div class="flex items-center justify-end space-x-2">
+                                @if($import->status == 'pending_review')
+                                    <a href="{{ route('afd-imports.review', $import) }}" class="text-yellow-600 hover:text-yellow-800 p-2 hover:bg-yellow-50 rounded transition" title="Revisar pendentes">
+                                        <i class="fas fa-user-plus"></i>
+                                    </a>
+                                @endif
                                 <a href="{{ route('afd-imports.show', $import) }}" class="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 rounded transition" title="Ver detalhes">
                                     <i class="fas fa-eye"></i>
                                 </a>

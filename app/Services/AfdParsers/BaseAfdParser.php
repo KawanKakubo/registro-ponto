@@ -21,6 +21,10 @@ abstract class BaseAfdParser implements AfdParserInterface
     protected array $errors = [];
     protected int $successCount = 0;
     protected int $skippedCount = 0;
+    
+    // Novos arrays para armazenar pendentes
+    protected array $pendingEmployees = [];
+    protected array $pendingRecords = [];
 
     /**
      * Processa o arquivo AFD
@@ -31,6 +35,8 @@ abstract class BaseAfdParser implements AfdParserInterface
         $this->errors = [];
         $this->successCount = 0;
         $this->skippedCount = 0;
+        $this->pendingEmployees = [];
+        $this->pendingRecords = [];
 
         try {
             // Converter para caminho absoluto se necessário
@@ -42,18 +48,25 @@ abstract class BaseAfdParser implements AfdParserInterface
             
             Log::info("AFD Parser ({$this->getFormatName()}): Processando arquivo {$fullPath}");
 
-            // Registra o formato detectado
+            DB::beginTransaction();
+
+            // Registra o formato detectado (dentro da transação)
             $this->afdImport->update([
                 'format_type' => $this->getFormatName(),
             ]);
 
-            DB::beginTransaction();
-
             $this->processFile($fullPath);
 
+            // Determina o status final baseado nos pendentes
+            $hasPending = !empty($this->pendingEmployees);
+            $finalStatus = $hasPending ? 'pending_review' : 'completed';
+
             $this->afdImport->update([
-                'status' => 'completed',
+                'status' => $finalStatus,
                 'total_records' => $this->successCount,
+                'pending_employees' => $hasPending ? array_values($this->pendingEmployees) : null,
+                'pending_records' => $hasPending ? array_values($this->pendingRecords) : null,
+                'pending_count' => count($this->pendingEmployees),
             ]);
 
             DB::commit();
@@ -62,17 +75,25 @@ abstract class BaseAfdParser implements AfdParserInterface
                 'success' => true,
                 'imported' => $this->successCount,
                 'skipped' => $this->skippedCount,
+                'pending' => count($this->pendingEmployees),
                 'errors' => $this->errors,
                 'format' => $this->getFormatName(),
+                'needs_review' => $hasPending,
             ];
 
         } catch (\Exception $e) {
             DB::rollBack();
             
-            $this->afdImport->update([
-                'status' => 'failed',
-                'error_message' => $e->getMessage(),
-            ]);
+            // Atualiza fora de qualquer transação para garantir que o erro seja salvo
+            try {
+                $this->afdImport->refresh();
+                $this->afdImport->update([
+                    'status' => 'failed',
+                    'error_message' => $e->getMessage(),
+                ]);
+            } catch (\Exception $updateError) {
+                Log::error("Erro ao atualizar status de falha: " . $updateError->getMessage());
+            }
 
             Log::error("Erro ao processar AFD: " . $e->getMessage());
 
@@ -234,12 +255,27 @@ abstract class BaseAfdParser implements AfdParserInterface
 
     /**
      * Normaliza PIS/PASEP removendo formatação
+     * 
+     * O PIS/PASEP brasileiro tem 11 dígitos, mas alguns sistemas AFD
+     * armazenam com 12 dígitos (zero à esquerda). Este método normaliza
+     * para 11 dígitos quando possível.
      */
     protected function normalizePis(string $pisRaw): ?string
     {
         $pis = preg_replace('/[^0-9]/', '', trim($pisRaw));
         
+        // Se tem 12 dígitos e começa com 0, remove o zero à esquerda
+        if (strlen($pis) == 12 && $pis[0] === '0') {
+            $pis = substr($pis, 1);
+        }
+        
+        // PIS deve ter 11 dígitos
         if (strlen($pis) != 11) {
+            return null;
+        }
+        
+        // Valida se não é um PIS fake (todos iguais)
+        if (preg_match('/^(.)\1{10}$/', $pis)) {
             return null;
         }
 
@@ -265,5 +301,81 @@ abstract class BaseAfdParser implements AfdParserInterface
     {
         $this->errors[] = $message;
         Log::warning("AFD Parser Error: {$message}");
+    }
+
+    /**
+     * Adiciona um colaborador não encontrado à lista de pendentes
+     * 
+     * @param string|null $matricula Matrícula do colaborador
+     * @param string|null $pis PIS/PASEP do colaborador
+     * @param string|null $cpf CPF do colaborador
+     * @param \Carbon\Carbon $recordedAt Data/hora do registro
+     * @param string $nsr NSR do registro
+     * @param string $recordType Tipo do registro
+     */
+    protected function addPendingEmployee(
+        ?string $matricula, 
+        ?string $pis, 
+        ?string $cpf, 
+        \Carbon\Carbon $recordedAt,
+        string $nsr,
+        string $recordType
+    ): void {
+        // Cria uma chave única para identificar o colaborador
+        $key = $this->generateEmployeeKey($matricula, $pis, $cpf);
+        
+        // Se já existe, apenas incrementa o contador e adiciona o registro
+        if (isset($this->pendingEmployees[$key])) {
+            $this->pendingEmployees[$key]['records_count']++;
+            
+            // Atualiza a primeira e última data do registro
+            $currentFirst = $this->pendingEmployees[$key]['first_record'];
+            $currentLast = $this->pendingEmployees[$key]['last_record'];
+            
+            if ($recordedAt->format('Y-m-d H:i:s') < $currentFirst) {
+                $this->pendingEmployees[$key]['first_record'] = $recordedAt->format('Y-m-d H:i:s');
+            }
+            if ($recordedAt->format('Y-m-d H:i:s') > $currentLast) {
+                $this->pendingEmployees[$key]['last_record'] = $recordedAt->format('Y-m-d H:i:s');
+            }
+        } else {
+            // Novo colaborador pendente
+            $this->pendingEmployees[$key] = [
+                'key' => $key,
+                'matricula' => $matricula,
+                'pis' => $pis,
+                'cpf' => $cpf,
+                'records_count' => 1,
+                'first_record' => $recordedAt->format('Y-m-d H:i:s'),
+                'last_record' => $recordedAt->format('Y-m-d H:i:s'),
+            ];
+        }
+        
+        // Adiciona o registro pendente
+        $this->pendingRecords[] = [
+            'employee_key' => $key,
+            'recorded_at' => $recordedAt->format('Y-m-d H:i:s'),
+            'record_date' => $recordedAt->format('Y-m-d'),
+            'record_time' => $recordedAt->format('H:i:s'),
+            'nsr' => $nsr,
+            'record_type' => $recordType,
+        ];
+    }
+
+    /**
+     * Gera uma chave única para identificar um colaborador
+     */
+    protected function generateEmployeeKey(?string $matricula, ?string $pis, ?string $cpf): string
+    {
+        if ($matricula) {
+            return 'matricula_' . preg_replace('/[^0-9A-Za-z]/', '', $matricula);
+        }
+        if ($pis) {
+            return 'pis_' . preg_replace('/[^0-9]/', '', $pis);
+        }
+        if ($cpf) {
+            return 'cpf_' . preg_replace('/[^0-9]/', '', $cpf);
+        }
+        return 'unknown_' . uniqid();
     }
 }
