@@ -172,7 +172,7 @@
             <div class="flex justify-end gap-3">
                 <a 
                     href="{{ route('timesheets.index') }}" 
-                    class="bg-gray-500 hover:bg-gray-600 text-white font-semibold px-6 py-3 rounded-lg shadow-lg transition"
+                    class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold px-6 py-3 rounded-lg shadow-lg transition border border-gray-300"
                 >
                     <i class="fas fa-times mr-2"></i>
                     Cancelar
