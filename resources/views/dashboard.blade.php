@@ -21,7 +21,7 @@
                     <p class="text-blue-100 text-xs mt-1">{{ number_format($stats['active_registrations'], 0, ',', '.') }} vínculos ativos</p>
                 </div>
                 <div class="bg-white bg-opacity-20 rounded-full p-4">
-                    <i class="fas fa-users text-3xl"></i>
+                    <i class="fas fa-users text-3xl text-blue-900"></i>
                 </div>
             </div>
             <a href="{{ route('employees.index') }}" class="text-blue-100 hover:text-white text-sm flex items-center">
@@ -40,7 +40,7 @@
                     </p>
                 </div>
                 <div class="bg-white bg-opacity-20 rounded-full p-4">
-                    <i class="fas fa-id-card text-3xl"></i>
+                    <i class="fas fa-id-card text-3xl text-green-900"></i>
                 </div>
             </div>
             <span class="text-green-100 text-sm">{{ number_format($stats['inactive_registrations'], 0, ',', '.') }} inativos</span>
@@ -55,7 +55,7 @@
                     <p class="text-purple-100 text-xs mt-1">{{ number_format($stats['establishments_with_registrations'], 0, ',', '.') }} com vínculos</p>
                 </div>
                 <div class="bg-white bg-opacity-20 rounded-full p-4">
-                    <i class="fas fa-building text-3xl"></i>
+                    <i class="fas fa-building text-3xl text-purple-900"></i>
                 </div>
             </div>
             <a href="{{ route('establishments.index') }}" class="text-purple-100 hover:text-white text-sm flex items-center">
@@ -72,7 +72,7 @@
                     <p class="text-orange-100 text-xs mt-1">{{ number_format($stats['this_month_records'], 0, ',', '.') }} este mês</p>
                 </div>
                 <div class="bg-white bg-opacity-20 rounded-full p-4">
-                    <i class="fas fa-clock text-3xl"></i>
+                    <i class="fas fa-clock text-3xl text-orange-900"></i>
                 </div>
             </div>
             <span class="text-orange-100 text-sm">{{ today()->format('d/m/Y') }}</span>
