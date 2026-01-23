@@ -8,7 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class WorkSchedule extends Model
 {
     protected $fillable = [
-        'employee_id',
+        'employee_registration_id',
+        'source_template_id',
         'day_of_week',
         'entry_1',
         'exit_1',
@@ -22,22 +23,24 @@ class WorkSchedule extends Model
     ];
 
     protected $casts = [
-        'entry_1' => 'datetime:H:i:s',
-        'exit_1' => 'datetime:H:i:s',
-        'entry_2' => 'datetime:H:i:s',
-        'exit_2' => 'datetime:H:i:s',
-        'entry_3' => 'datetime:H:i:s',
-        'exit_3' => 'datetime:H:i:s',
         'effective_from' => 'date',
         'effective_until' => 'date',
     ];
 
     /**
-     * Relacionamento com colaborador
+     * Relacionamento com vínculo (matrícula)
+     */
+    public function employeeRegistration(): BelongsTo
+    {
+        return $this->belongsTo(EmployeeRegistration::class);
+    }
+
+    /**
+     * DEPRECATED: Mantido por compatibilidade - usar employeeRegistration()
      */
     public function employee(): BelongsTo
     {
-        return $this->belongsTo(Employee::class);
+        return $this->employeeRegistration();
     }
 
     /**

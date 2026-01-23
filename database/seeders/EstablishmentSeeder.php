@@ -14,6 +14,7 @@ class EstablishmentSeeder extends Seeder
     public function run(): void
     {
         Establishment::create([
+            'id' => 1,
             'corporate_name' => 'Prefeitura Municipal de Assaí',
             'trade_name' => 'Prefeitura de Assaí',
             'cnpj' => '76.222.769/0001-37',

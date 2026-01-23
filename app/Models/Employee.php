@@ -5,7 +5,29 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
+/**
+ * MODELO DEPRECATED - USE PERSON + EMPLOYEEREGISTRATION
+ * 
+ * @deprecated Este modelo está obsoleto e mantido apenas para compatibilidade com código legado.
+ * 
+ * NOVA ARQUITETURA:
+ * - Person: Representa a pessoa física (dados pessoais como CPF, nome, PIS)
+ * - EmployeeRegistration: Representa um vínculo empregatício (matrícula, estabelecimento, departamento)
+ * 
+ * BENEFÍCIOS DA NOVA ARQUITETURA:
+ * - Uma pessoa pode ter múltiplos vínculos (matrículas) simultâneos ou sequenciais
+ * - Histórico completo de vínculos preservado
+ * - Melhor organização dos dados pessoais vs dados empregatícios
+ * 
+ * MIGRAÇÃO:
+ * Para novo código, use:
+ * - Person::with('activeRegistrations') ao invés de Employee::where('status', 'active')
+ * - EmployeeRegistration::with('person') para acessar dados do vínculo
+ * 
+ * REMOÇÃO PLANEJADA: Versão 2.0 (após migração completa dos dados)
+ */
 class Employee extends Model
 {
     protected $fillable = [
@@ -14,6 +36,7 @@ class Employee extends Model
         'full_name',
         'cpf',
         'pis_pasep',
+        'matricula',
         'ctps',
         'admission_date',
         'position',
@@ -57,29 +80,42 @@ class Employee extends Model
     }
 
     /**
-     * Mutator para formatar CPF ao salvar
+     * Relacionamento com atribuições de jornada
      */
-    public function setCpfAttribute($value): void
+    public function workShiftAssignments(): HasMany
     {
-        // Remove tudo que não é número
-        $cpf = preg_replace('/[^0-9]/', '', $value);
-        
-        // Formata: 000.000.000-00
-        if (strlen($cpf) == 11) {
-            $this->attributes['cpf'] = sprintf(
-                '%s.%s.%s-%s',
-                substr($cpf, 0, 3),
-                substr($cpf, 3, 3),
-                substr($cpf, 6, 3),
-                substr($cpf, 9, 2)
-            );
-        } else {
-            $this->attributes['cpf'] = $value;
-        }
+        return $this->hasMany(EmployeeWorkShiftAssignment::class);
     }
 
     /**
-     * Mutator para formatar PIS ao salvar
+     * Retorna a atribuição de jornada atual (ativa)
+     */
+    public function currentWorkShiftAssignment(): HasOne
+    {
+        return $this->hasOne(EmployeeWorkShiftAssignment::class)
+            ->active()
+            ->latest('effective_from');
+    }
+
+    /**
+     * Verifica se o colaborador tem uma jornada atribuída
+     */
+    public function hasWorkShift(): bool
+    {
+        return $this->currentWorkShiftAssignment()->exists();
+    }
+
+    /**
+     * Mutator para limpar CPF ao salvar (remove formatação)
+     */
+    public function setCpfAttribute($value): void
+    {
+        // Remove tudo que não é número e salva limpo
+        $this->attributes['cpf'] = preg_replace('/[^0-9]/', '', $value);
+    }
+
+    /**
+     * Mutator para limpar PIS ao salvar (remove formatação)
      */
     public function setPisPasepAttribute($value): void
     {
@@ -88,21 +124,62 @@ class Employee extends Model
             return;
         }
 
-        // Remove tudo que não é número
-        $pis = preg_replace('/[^0-9]/', '', $value);
+        // Remove tudo que não é número e salva limpo
+        $this->attributes['pis_pasep'] = preg_replace('/[^0-9]/', '', $value);
+    }
+
+    /**
+     * Mutator para limpar Matrícula ao salvar (remove formatação)
+     */
+    public function setMatriculaAttribute($value): void
+    {
+        if (!$value) {
+            $this->attributes['matricula'] = null;
+            return;
+        }
+
+        // Remove espaços e caracteres especiais
+        $this->attributes['matricula'] = preg_replace('/[^0-9A-Za-z]/', '', $value);
+    }
+    
+    /**
+     * Accessor para obter CPF formatado
+     */
+    public function getCpfFormattedAttribute(): string
+    {
+        $cpf = $this->cpf;
+        if (strlen($cpf) == 11) {
+            return sprintf(
+                '%s.%s.%s-%s',
+                substr($cpf, 0, 3),
+                substr($cpf, 3, 3),
+                substr($cpf, 6, 3),
+                substr($cpf, 9, 2)
+            );
+        }
+        return $cpf;
+    }
+    
+    /**
+     * Accessor para obter PIS formatado
+     */
+    public function getPisPasepFormattedAttribute(): ?string
+    {
+        if (!$this->pis_pasep) {
+            return null;
+        }
         
-        // Formata: 000.00000.00-0
+        $pis = $this->pis_pasep;
         if (strlen($pis) == 11) {
-            $this->attributes['pis_pasep'] = sprintf(
+            return sprintf(
                 '%s.%s.%s-%s',
                 substr($pis, 0, 3),
                 substr($pis, 3, 5),
                 substr($pis, 8, 2),
                 substr($pis, 10, 1)
             );
-        } else {
-            $this->attributes['pis_pasep'] = $value;
         }
+        return $pis;
     }
 
     /**
@@ -111,13 +188,5 @@ class Employee extends Model
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
-    }
-
-    /**
-     * Accessor para obter CPF sem formatação
-     */
-    public function getCpfRawAttribute(): string
-    {
-        return preg_replace('/[^0-9]/', '', $this->cpf);
     }
 }

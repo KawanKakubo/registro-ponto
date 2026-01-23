@@ -2,7 +2,8 @@
 
 namespace App\Jobs;
 
-use App\Models\Employee;
+use App\Models\Person;
+use App\Models\EmployeeRegistration;
 use App\Models\EmployeeImport;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -80,6 +81,9 @@ class ImportEmployeesFromCsv implements ShouldQueue
         $handle = fopen($filePath, 'r');
         $header = fgetcsv($handle, 1000, ',');
         
+        // Limpar espaços em branco do cabeçalho
+        $header = array_map('trim', $header);
+        
         $lineNumber = 1;
 
         while (($row = fgetcsv($handle, 1000, ',')) !== false) {
@@ -87,15 +91,25 @@ class ImportEmployeesFromCsv implements ShouldQueue
             $results['total']++;
 
             try {
+                // Limpar espaços em branco dos valores
+                $row = array_map('trim', $row);
                 $data = array_combine($header, $row);
+                
+                // Limpar CPF, PIS e Matrícula
+                $data['cpf'] = preg_replace('/[^0-9]/', '', $data['cpf']);
+                $data['pis_pasep'] = preg_replace('/[^0-9]/', '', $data['pis_pasep']);
+                if (isset($data['matricula'])) {
+                    $data['matricula'] = trim($data['matricula']);
+                }
                 
                 // Validar dados
                 $validator = Validator::make($data, [
-                    'cpf' => 'required|string|size:14',
+                    'cpf' => 'required|string|size:11',
                     'full_name' => 'required|string|max:255',
-                    'pis_pasep' => 'required|string|size:14',
+                    'pis_pasep' => 'required|string|size:11',
+                    'matricula' => 'required|string|max:20',
                     'establishment_id' => 'required|exists:establishments,id',
-                    'department_id' => 'required|exists:departments,id',
+                    'department_id' => 'nullable|exists:departments,id',
                     'admission_date' => 'required|date',
                     'role' => 'nullable|string|max:255',
                 ]);
@@ -109,32 +123,75 @@ class ImportEmployeesFromCsv implements ShouldQueue
                     continue;
                 }
 
-                // Verificar se colaborador já existe (por CPF)
-                $employee = Employee::where('cpf', $data['cpf'])->first();
+                // NOVA LÓGICA: Pessoa + Vínculo (APENAS VINCULA, NÃO CRIA PESSOAS)
+                $personNotFound = false;
+                
+                DB::transaction(function () use ($data, &$results, $lineNumber, &$personNotFound) {
+                    // PASSO 1: BUSCAR PESSOA EXISTENTE (NÃO CRIA)
+                    // Primeiro tenta pelo CPF, depois pelo PIS
+                    $person = Person::where('cpf', $data['cpf'])->first();
+                    
+                    if (!$person && !empty($data['pis_pasep'])) {
+                        $person = Person::where('pis_pasep', $data['pis_pasep'])->first();
+                    }
 
-                if ($employee) {
-                    // Atualizar colaborador existente
-                    $employee->update([
-                        'full_name' => $data['full_name'],
-                        'pis_pasep' => $data['pis_pasep'],
-                        'establishment_id' => $data['establishment_id'],
-                        'department_id' => $data['department_id'],
-                        'admission_date' => $data['admission_date'],
-                        'role' => $data['role'] ?? null,
-                    ]);
-                    $results['updated']++;
-                } else {
-                    // Criar novo colaborador
-                    Employee::create([
-                        'cpf' => $data['cpf'],
-                        'full_name' => $data['full_name'],
-                        'pis_pasep' => $data['pis_pasep'],
-                        'establishment_id' => $data['establishment_id'],
-                        'department_id' => $data['department_id'],
-                        'admission_date' => $data['admission_date'],
-                        'role' => $data['role'] ?? null,
-                    ]);
-                    $results['success']++;
+                    if (!$person) {
+                        // Pessoa não encontrada - marcar flag para registrar erro
+                        $personNotFound = true;
+                        return; // Sai da transaction sem fazer nada
+                    }
+                    
+                    // Pessoa existe - atualizar dados se necessário
+                    $updateData = [];
+                    
+                    if (empty($person->cpf) && !empty($data['cpf'])) {
+                        $updateData['cpf'] = $data['cpf'];
+                    }
+                    
+                    if (empty($person->pis_pasep) && !empty($data['pis_pasep'])) {
+                        $updateData['pis_pasep'] = $data['pis_pasep'];
+                    }
+                    
+                    if (!empty($updateData)) {
+                        $person->update($updateData);
+                    }
+
+                    // PASSO 2: Buscar ou criar o VÍNCULO pela MATRÍCULA
+                    $registration = EmployeeRegistration::where('matricula', $data['matricula'])->first();
+
+                    if ($registration) {
+                        // Vínculo já existe, atualizar
+                        $registration->update([
+                            'person_id' => $person->id,
+                            'establishment_id' => $data['establishment_id'],
+                            'department_id' => $data['department_id'] ?: $registration->department_id,
+                            'admission_date' => $data['admission_date'],
+                            'position' => $data['role'] ?: $registration->position,
+                            'status' => 'active',
+                        ]);
+                        $results['updated']++;
+                    } else {
+                        // Criar novo Vínculo
+                        EmployeeRegistration::create([
+                            'person_id' => $person->id,
+                            'matricula' => $data['matricula'],
+                            'establishment_id' => $data['establishment_id'],
+                            'department_id' => $data['department_id'] ?: null,
+                            'admission_date' => $data['admission_date'],
+                            'position' => $data['role'] ?: null,
+                            'status' => 'active',
+                        ]);
+                        $results['success']++;
+                    }
+                });
+                
+                // Se pessoa não foi encontrada, registrar erro
+                if ($personNotFound) {
+                    $results['errors']++;
+                    $results['error_details'][] = [
+                        'line' => $lineNumber,
+                        'errors' => ["Colaborador não encontrado no sistema (CPF: {$data['cpf']}, PIS: {$data['pis_pasep']})"]
+                    ];
                 }
 
             } catch (\Exception $e) {

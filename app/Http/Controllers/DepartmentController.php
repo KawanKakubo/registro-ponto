@@ -10,8 +10,20 @@ class DepartmentController extends Controller
 {
     public function index()
     {
-        $departments = Department::with('establishment')->orderBy('name')->get();
-        return view('departments.index', compact('departments'));
+        $departments = Department::with('establishment')
+            ->withCount(['employeeRegistrations', 'activeRegistrations'])
+            ->orderBy('name')
+            ->get();
+        
+        $stats = [
+            'total' => $departments->count(),
+            'with_registrations' => $departments->filter(fn($d) => $d->employee_registrations_count > 0)->count(),
+            'total_registrations' => $departments->sum('employee_registrations_count'),
+            'active_registrations' => $departments->sum('active_registrations_count'),
+            'establishments' => $departments->pluck('establishment_id')->unique()->count(),
+        ];
+        
+        return view('departments.index', compact('departments', 'stats'));
     }
 
     public function create()

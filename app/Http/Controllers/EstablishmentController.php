@@ -9,8 +9,19 @@ class EstablishmentController extends Controller
 {
     public function index()
     {
-        $establishments = Establishment::orderBy('corporate_name')->get();
-        return view('establishments.index', compact('establishments'));
+        $establishments = Establishment::withCount(['employeeRegistrations', 'departments'])
+            ->orderBy('corporate_name')
+            ->get();
+        
+        $stats = [
+            'total' => $establishments->count(),
+            'with_registrations' => $establishments->filter(fn($e) => $e->employee_registrations_count > 0)->count(),
+            'with_departments' => $establishments->filter(fn($e) => $e->departments_count > 0)->count(),
+            'total_registrations' => $establishments->sum('employee_registrations_count'),
+            'states' => $establishments->pluck('state')->unique()->count(),
+        ];
+        
+        return view('establishments.index', compact('establishments', 'stats'));
     }
 
     public function create()

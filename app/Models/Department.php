@@ -23,10 +23,32 @@ class Department extends Model
     }
 
     /**
-     * Relacionamento com colaboradores
+     * Relacionamento com colaboradores (DEPRECATED)
+     * 
+     * @deprecated Use employeeRegistrations() instead
+     * @see employeeRegistrations()
      */
     public function employees(): HasMany
     {
         return $this->hasMany(Employee::class);
+    }
+
+    /**
+     * Relacionamento com vínculos de colaboradores
+     * 
+     * Um departamento pode ter vários vínculos de colaboradores
+     */
+    public function employeeRegistrations(): HasMany
+    {
+        return $this->hasMany(EmployeeRegistration::class);
+    }
+
+    /**
+     * Relacionamento com vínculos ativos
+     */
+    public function activeRegistrations(): HasMany
+    {
+        return $this->hasMany(EmployeeRegistration::class)
+            ->where('status', 'active');
     }
 }

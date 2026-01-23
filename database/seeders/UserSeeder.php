@@ -17,11 +17,16 @@ class UserSeeder extends Seeder
     {
         $establishment = Establishment::first();
 
-        User::create([
-            'name' => 'Administrador',
-            'email' => 'admin@assai.pr.gov.br',
-            'password' => Hash::make('senha123'),
-            'establishment_id' => $establishment?->id,
-        ]);
+        User::updateOrCreate(
+            ['email' => 'admin@assai.pr.gov.br'],
+            [
+                'name' => 'Administrador',
+                'cpf' => '00000000000',
+                'password' => Hash::make('admin123'),
+                'is_active' => true,
+                'role' => 'admin',
+                'establishment_id' => $establishment?->id,
+            ]
+        );
     }
 }
