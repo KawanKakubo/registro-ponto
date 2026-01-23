@@ -22,6 +22,32 @@
     @endif
 
     <div class="max-w-4xl mx-auto w-full">
+        <!-- Opções de Geração -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div class="bg-white rounded-lg shadow p-4 border-2 border-blue-500">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                        <i class="fas fa-user text-blue-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-900">Por Pessoa</h3>
+                        <p class="text-sm text-gray-600">Buscar pessoa e selecionar vínculos</p>
+                    </div>
+                </div>
+            </div>
+            <a href="{{ route('timesheets.by-department') }}" class="bg-white rounded-lg shadow p-4 border-2 border-gray-200 hover:border-purple-500 hover:bg-purple-50 transition">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mr-4">
+                        <i class="fas fa-building text-purple-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-900">Por Departamento</h3>
+                        <p class="text-sm text-gray-600">Gerar para todos do departamento</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
         <!-- Painel de Busca de Pessoa -->
         <div class="bg-white rounded-lg shadow-lg p-8">
             <h2 class="text-xl font-bold text-gray-900 mb-6 flex items-center">

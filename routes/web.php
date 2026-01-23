@@ -128,6 +128,10 @@ Route::prefix('timesheets')->group(function () {
     Route::post('/generate-multiple', [TimesheetController::class, 'generateMultiple'])->name('timesheets.generate-multiple');
     Route::get('/registration/{registration}', [TimesheetController::class, 'showRegistration'])->name('timesheets.show-registration');
     
+    // Gerar por Departamento
+    Route::get('/by-department', [TimesheetController::class, 'byDepartment'])->name('timesheets.by-department');
+    Route::post('/generate-by-department', [TimesheetController::class, 'generateByDepartment'])->name('timesheets.generate-by-department');
+    
     // Rotas antigas (deprecated)
     Route::post('/generate', [TimesheetController::class, 'generate'])->name('timesheets.generate');
     Route::get('/show', [TimesheetController::class, 'show'])->name('timesheets.show');

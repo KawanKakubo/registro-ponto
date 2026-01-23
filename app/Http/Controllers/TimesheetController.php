@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Person;
 use App\Models\EmployeeRegistration;
+use App\Models\Department;
 use App\Services\TimesheetGeneratorService;
 use App\Services\ZipService;
 use Illuminate\Http\Request;
@@ -218,5 +219,109 @@ class TimesheetController extends Controller
         $name = preg_replace('/_+/', '_', $name);
         // Remove underscores no início e fim
         return trim($name, '_');
+    }
+
+    /**
+     * Exibe formulário para gerar cartões por departamento
+     */
+    public function byDepartment()
+    {
+        $departments = Department::withCount(['employeeRegistrations' => function ($query) {
+            $query->where('status', 'active');
+        }])
+        ->orderBy('name')
+        ->get();
+
+        return view('timesheets.by-department', [
+            'departments' => $departments,
+        ]);
+    }
+
+    /**
+     * Gera cartões de ponto para todos os funcionários de um departamento
+     */
+    public function generateByDepartment(Request $request)
+    {
+        $request->validate([
+            'department_id' => 'required|exists:departments,id',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+        ], [
+            'department_id.required' => 'Selecione um departamento.',
+            'department_id.exists' => 'Departamento não encontrado.',
+            'start_date.required' => 'Informe a data inicial.',
+            'end_date.required' => 'Informe a data final.',
+            'end_date.after_or_equal' => 'A data final deve ser igual ou posterior à data inicial.',
+        ]);
+
+        $department = Department::findOrFail($request->department_id);
+        $startDate = $request->start_date;
+        $endDate = $request->end_date;
+
+        // Buscar todos os vínculos ativos do departamento
+        $registrations = EmployeeRegistration::with(['person', 'establishment', 'department', 'currentWorkShiftAssignment.template'])
+            ->where('department_id', $department->id)
+            ->where('status', 'active')
+            ->get();
+
+        if ($registrations->isEmpty()) {
+            return back()->with('error', 'Nenhum funcionário ativo encontrado neste departamento.');
+        }
+
+        // Gerar PDFs
+        $pdfs = [];
+        $errors = [];
+
+        foreach ($registrations as $registration) {
+            try {
+                // Gerar dados do cartão de ponto
+                $data = $this->timesheetService->generate($registration, $startDate, $endDate);
+
+                // Renderizar HTML
+                $html = view('timesheets.pdf', $data)->render();
+
+                // Converter para PDF
+                $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html);
+                $pdf->setPaper('A4', 'portrait');
+                $pdf->setOptions([
+                    'isHtml5ParserEnabled' => true,
+                    'isPhpEnabled' => true,
+                    'isRemoteEnabled' => true,
+                    'defaultFont' => 'Arial',
+                    'dpi' => 96,
+                ]);
+
+                // Nome do arquivo
+                $fileName = $this->sanitizeFileName($registration->person->full_name) . 
+                           '_' . $registration->matricula . 
+                           '_' . str_replace('-', '', $startDate) . 
+                           '_' . str_replace('-', '', $endDate) . '.pdf';
+
+                $pdfs[] = [
+                    'filename' => $fileName,
+                    'content' => $pdf->output(),
+                ];
+
+            } catch (\Exception $e) {
+                \Log::error("Erro ao gerar PDF para vínculo {$registration->id}: {$e->getMessage()}");
+                $errors[] = $registration->person->full_name . ' (Mat: ' . $registration->matricula . ')';
+            }
+        }
+
+        if (empty($pdfs)) {
+            return back()->with('error', 'Não foi possível gerar nenhum cartão de ponto. Erros: ' . implode(', ', $errors));
+        }
+
+        // Criar ZIP
+        $zipName = $this->sanitizeFileName($department->name) . '_cartoes_' . str_replace('-', '', $startDate);
+        $zipPath = $this->zipService->createZipFromPdfs($pdfs, $zipName);
+
+        $successMsg = count($pdfs) . ' cartão(ões) gerado(s) com sucesso.';
+        if (!empty($errors)) {
+            $successMsg .= ' Erros em: ' . implode(', ', $errors);
+        }
+
+        // Download
+        return response()->download($zipPath, basename($zipPath))->deleteFileAfterSend(true);
     }
 }
