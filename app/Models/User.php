@@ -22,6 +22,7 @@ class User extends Authenticatable
         'cpf',
         'role',
         'is_active',
+        'is_super_admin',
         'email',
         'password',
         'establishment_id',
@@ -47,7 +48,41 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_super_admin' => 'boolean',
+            'is_active' => 'boolean',
         ];
+    }
+
+    /**
+     * Verifica se o usuário é super admin
+     */
+    public function isSuperAdmin(): bool
+    {
+        return $this->is_super_admin === true;
+    }
+
+    /**
+     * Verifica se o usuário pode editar outro admin
+     */
+    public function canEditAdmin(User $admin): bool
+    {
+        // Super admin pode editar qualquer um
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+        
+        // Admin normal só pode editar a si mesmo
+        return $this->id === $admin->id;
+    }
+
+    /**
+     * Verifica se o usuário pode excluir outro admin
+     */
+    public function canDeleteAdmin(User $admin): bool
+    {
+        // Apenas super admin pode excluir admins
+        // E não pode excluir a si mesmo
+        return $this->isSuperAdmin() && $this->id !== $admin->id;
     }
 
     /**

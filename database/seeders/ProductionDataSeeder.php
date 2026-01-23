@@ -194,7 +194,7 @@ class ProductionDataSeeder extends Seeder
 
     private function seedAdminUser(): void
     {
-        $this->command->info('Criando usuário administrador...');
+        $this->command->info('Criando usuário Super Administrador...');
         
         DB::table('users')->updateOrInsert(
             ['email' => 'admin@assai.pr.gov.br'],
@@ -204,13 +204,15 @@ class ProductionDataSeeder extends Seeder
                 'password' => bcrypt('admin123'),
                 'cpf' => '00000000000',
                 'role' => 'admin',
+                'is_active' => true,
+                'is_super_admin' => true,
                 'establishment_id' => 1,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]
         );
         
-        $this->command->info("  → Usuário admin criado (admin@assai.pr.gov.br / admin123)");
+        $this->command->info("  → Super Admin criado (admin@assai.pr.gov.br / admin123)");
     }
 
     // ========================================

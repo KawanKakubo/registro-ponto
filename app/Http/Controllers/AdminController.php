@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Establishment;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 
 class AdminController extends Controller
 {
@@ -97,6 +98,12 @@ class AdminController extends Controller
      */
     public function edit(User $admin)
     {
+        // Verifica se o usuário atual pode editar este admin
+        if (!Auth::user()->canEditAdmin($admin)) {
+            return redirect()->route('admins.index')
+                ->with('error', 'Você não tem permissão para editar este administrador.');
+        }
+
         $establishments = Establishment::orderBy('corporate_name')->get();
         return view('admins.edit', compact('admin', 'establishments'));
     }
@@ -106,6 +113,12 @@ class AdminController extends Controller
      */
     public function update(Request $request, User $admin)
     {
+        // Verifica se o usuário atual pode editar este admin
+        if (!Auth::user()->canEditAdmin($admin)) {
+            return redirect()->route('admins.index')
+                ->with('error', 'Você não tem permissão para editar este administrador.');
+        }
+
         // Remove qualquer formatação do CPF primeiro
         $cpfLimpo = preg_replace('/[^0-9]/', '', $request->cpf);
 
@@ -156,6 +169,12 @@ class AdminController extends Controller
      */
     public function destroy(User $admin)
     {
+        // Verifica se o usuário atual pode excluir este admin
+        if (!Auth::user()->canDeleteAdmin($admin)) {
+            return redirect()->route('admins.index')
+                ->with('error', 'Apenas Super Administradores podem excluir outros administradores.');
+        }
+
         $admin->delete();
         return redirect()->route('admins.index')->with('success', 'Administrador removido com sucesso!');
     }

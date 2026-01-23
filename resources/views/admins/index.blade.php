@@ -88,6 +88,11 @@
                                 {{ $admin->establishment ? $admin->establishment->corporate_name : 'Todos' }}
                             </td>
                             <td class="py-4 px-4">
+                                @if($admin->is_super_admin)
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 mr-1">
+                                        <i class="fas fa-crown mr-1 text-xs"></i>Super
+                                    </span>
+                                @endif
                                 @if($admin->is_active)
                                     <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                         <i class="fas fa-circle mr-1 text-xs"></i>Ativo
@@ -100,16 +105,29 @@
                             </td>
                             <td class="py-4 px-4">
                                 <div class="flex items-center justify-center space-x-2">
-                                    <a href="{{ route('admins.edit', $admin) }}" class="text-blue-600 hover:text-blue-800 transition" title="Editar">
-                                        <i class="fas fa-edit text-lg"></i>
-                                    </a>
-                                    <form method="POST" action="{{ route('admins.destroy', $admin) }}" class="inline" onsubmit="return confirm('Tem certeza que deseja excluir este administrador?');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="text-red-600 hover:text-red-800 transition" title="Excluir">
+                                    @if(Auth::user()->canEditAdmin($admin))
+                                        <a href="{{ route('admins.edit', $admin) }}" class="text-blue-600 hover:text-blue-800 transition" title="Editar">
+                                            <i class="fas fa-edit text-lg"></i>
+                                        </a>
+                                    @else
+                                        <span class="text-gray-300 cursor-not-allowed" title="Apenas Super Admin pode editar">
+                                            <i class="fas fa-edit text-lg"></i>
+                                        </span>
+                                    @endif
+                                    
+                                    @if(Auth::user()->canDeleteAdmin($admin))
+                                        <form method="POST" action="{{ route('admins.destroy', $admin) }}" class="inline" onsubmit="return confirm('Tem certeza que deseja excluir este administrador?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="text-red-600 hover:text-red-800 transition" title="Excluir">
+                                                <i class="fas fa-trash text-lg"></i>
+                                            </button>
+                                        </form>
+                                    @else
+                                        <span class="text-gray-300 cursor-not-allowed" title="Apenas Super Admin pode excluir">
                                             <i class="fas fa-trash text-lg"></i>
-                                        </button>
-                                    </form>
+                                        </span>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
