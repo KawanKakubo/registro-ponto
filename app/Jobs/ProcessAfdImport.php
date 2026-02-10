@@ -4,15 +4,16 @@ namespace App\Jobs;
 
 use App\Models\AfdImport;
 use App\Services\AfdParserService;
+use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
 class ProcessAfdImport implements ShouldQueue
 {
-    use Queueable, InteractsWithQueue, SerializesModels;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
      * O número de vezes que o job pode ser tentado.
@@ -25,11 +26,17 @@ class ProcessAfdImport implements ShouldQueue
     public $timeout = 300; // 5 minutos
 
     /**
+     * A importação AFD a ser processada.
+     */
+    public $afdImport;
+
+    /**
      * Create a new job instance.
      */
-    public function __construct(
-        public AfdImport $afdImport
-    ) {}
+    public function __construct(AfdImport $afdImport)
+    {
+        $this->afdImport = $afdImport;
+    }
 
     /**
      * Execute the job.

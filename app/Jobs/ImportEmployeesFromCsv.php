@@ -5,8 +5,9 @@ namespace App\Jobs;
 use App\Models\Person;
 use App\Models\EmployeeRegistration;
 use App\Models\EmployeeImport;
+use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
@@ -15,17 +16,23 @@ use Illuminate\Support\Facades\Validator;
 
 class ImportEmployeesFromCsv implements ShouldQueue
 {
-    use Queueable, InteractsWithQueue, SerializesModels;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $tries = 3;
     public $timeout = 600; // 10 minutos
 
     /**
+     * A importação a ser processada.
+     */
+    public $import;
+
+    /**
      * Create a new job instance.
      */
-    public function __construct(
-        public EmployeeImport $import
-    ) {}
+    public function __construct(EmployeeImport $import)
+    {
+        $this->import = $import;
+    }
 
     /**
      * Execute the job.

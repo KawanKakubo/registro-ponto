@@ -12,12 +12,12 @@ use Illuminate\Support\Facades\DB;
  * - Estabelecimentos: 1
  * - Departamentos: 18
  * - Pessoas: 993
- * - Vínculos empregatícios: 1003
+ * - Vínculos empregatícios: 1005
  * - Modelos de jornada: 107
  * - Escalas semanais: 535
- * - Atribuições de jornada: 965
+ * - Atribuições de jornada: 1005
  * 
- * Gerado em: 2026-01-23 09:55:34
+ * Atualizado em: 2026-01-23 10:30:00
  */
 class ProductionDataSeeder extends Seeder
 {
@@ -3894,6 +3894,46 @@ private function getEmployeeRegistrationsData(): array
             ['id' => 963, 'employee_registration_id' => 231, 'template_id' => 9, 'effective_from' => '2026-01-01', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 09:41:25'],
             ['id' => 964, 'employee_registration_id' => 284, 'template_id' => 7, 'effective_from' => '2026-01-01', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 09:41:25'],
             ['id' => 965, 'employee_registration_id' => 184, 'template_id' => 12, 'effective_from' => '2026-01-01', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 09:47:06'],
+            ['id' => 966, 'employee_registration_id' => 2, 'template_id' => 155, 'effective_from' => '2019-04-01', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 967, 'employee_registration_id' => 6, 'template_id' => 46, 'effective_from' => '2021-10-13', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 968, 'employee_registration_id' => 16, 'template_id' => 155, 'effective_from' => '2019-04-01', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 969, 'employee_registration_id' => 34, 'template_id' => 155, 'effective_from' => '1995-08-01', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 970, 'employee_registration_id' => 45, 'template_id' => 31, 'effective_from' => '2013-03-01', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 971, 'employee_registration_id' => 62, 'template_id' => 31, 'effective_from' => '1998-07-27', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 972, 'employee_registration_id' => 68, 'template_id' => 230, 'effective_from' => '2019-04-24', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 973, 'employee_registration_id' => 79, 'template_id' => 31, 'effective_from' => '2004-05-03', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 974, 'employee_registration_id' => 88, 'template_id' => 221, 'effective_from' => '2008-08-12', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 975, 'employee_registration_id' => 135, 'template_id' => 12, 'effective_from' => '2025-07-02', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 976, 'employee_registration_id' => 137, 'template_id' => 155, 'effective_from' => '1993-02-26', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 977, 'employee_registration_id' => 155, 'template_id' => 31, 'effective_from' => '2025-02-03', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 978, 'employee_registration_id' => 156, 'template_id' => 3, 'effective_from' => '2022-04-04', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 979, 'employee_registration_id' => 174, 'template_id' => 38, 'effective_from' => '2025-02-03', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 980, 'employee_registration_id' => 224, 'template_id' => 2, 'effective_from' => '2011-08-02', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 981, 'employee_registration_id' => 225, 'template_id' => 7, 'effective_from' => '2023-02-13', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 982, 'employee_registration_id' => 277, 'template_id' => 120, 'effective_from' => '2013-03-14', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 983, 'employee_registration_id' => 298, 'template_id' => 7, 'effective_from' => '2023-06-21', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 984, 'employee_registration_id' => 301, 'template_id' => 7, 'effective_from' => '2013-03-01', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 985, 'employee_registration_id' => 325, 'template_id' => 7, 'effective_from' => '2019-05-24', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 986, 'employee_registration_id' => 343, 'template_id' => 7, 'effective_from' => '2006-05-26', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 987, 'employee_registration_id' => 355, 'template_id' => 7, 'effective_from' => '1996-03-08', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 988, 'employee_registration_id' => 357, 'template_id' => 7, 'effective_from' => '2011-08-02', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 989, 'employee_registration_id' => 359, 'template_id' => 2, 'effective_from' => '2019-07-10', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 990, 'employee_registration_id' => 376, 'template_id' => 8, 'effective_from' => '2022-08-02', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 991, 'employee_registration_id' => 426, 'template_id' => 214, 'effective_from' => '2003-06-06', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 992, 'employee_registration_id' => 451, 'template_id' => 7, 'effective_from' => '2025-09-09', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 993, 'employee_registration_id' => 993, 'template_id' => 155, 'effective_from' => '2017-01-16', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 994, 'employee_registration_id' => 994, 'template_id' => 12, 'effective_from' => '1995-09-01', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 995, 'employee_registration_id' => 995, 'template_id' => 1, 'effective_from' => '2002-07-01', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 996, 'employee_registration_id' => 996, 'template_id' => 2, 'effective_from' => '2017-01-13', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 997, 'employee_registration_id' => 997, 'template_id' => 2, 'effective_from' => '2008-07-03', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 998, 'employee_registration_id' => 998, 'template_id' => 2, 'effective_from' => '2019-07-10', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 999, 'employee_registration_id' => 999, 'template_id' => 7, 'effective_from' => '2023-05-03', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 1000, 'employee_registration_id' => 1000, 'template_id' => 8, 'effective_from' => '1991-11-01', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 1001, 'employee_registration_id' => 1001, 'template_id' => 155, 'effective_from' => '2021-01-05', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 1002, 'employee_registration_id' => 1002, 'template_id' => 71, 'effective_from' => '1983-07-01', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 1003, 'employee_registration_id' => 1003, 'template_id' => 12, 'effective_from' => '1998-07-27', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 1004, 'employee_registration_id' => 1004, 'template_id' => 143, 'effective_from' => '1987-03-02', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
+            ['id' => 1005, 'employee_registration_id' => 1005, 'template_id' => 3, 'effective_from' => '1986-01-15', 'assigned_by' => 1, 'assigned_at' => '2026-01-23 10:00:00'],
         ];
     }
 }
