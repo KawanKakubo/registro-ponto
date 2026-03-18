@@ -120,24 +120,23 @@
             </div>
 
             <!-- Botões -->
-            <div class="flex justify-between mt-8">
-                <form action="{{ route('registrations.destroy', $registration) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este vínculo? Esta ação não pode ser desfeita.')">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-lg transition">
-                        <i class="fas fa-trash mr-2"></i>Excluir Vínculo
-                    </button>
-                </form>
-                
-                <div class="flex gap-4">
-                    <a href="{{ route('employees.show', $registration->person) }}" class="bg-gray-500 hover:bg-gray-600 text-white font-semibold px-6 py-3 rounded-lg transition">
-                        <i class="fas fa-times mr-2"></i>Cancelar
-                    </a>
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition">
-                        <i class="fas fa-save mr-2"></i>Salvar Alterações
-                    </button>
-                </div>
+            <div class="flex justify-end gap-4 mt-8">
+                <a href="{{ route('employees.show', $registration->person) }}" class="bg-gray-500 hover:bg-gray-600 text-white font-semibold px-6 py-3 rounded-lg transition">
+                    <i class="fas fa-times mr-2"></i>Cancelar
+                </a>
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition">
+                    <i class="fas fa-save mr-2"></i>Salvar Alterações
+                </button>
             </div>
+        </form>
+
+        <!-- Formulário de Exclusão Separado -->
+        <form action="{{ route('registrations.destroy', $registration) }}" method="POST" class="mt-6" onsubmit="return confirm('Tem certeza que deseja excluir este vínculo? Esta ação não pode ser desfeita.')">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-lg transition">
+                <i class="fas fa-trash mr-2"></i>Excluir Vínculo
+            </button>
         </form>
     </div>
 </div>
