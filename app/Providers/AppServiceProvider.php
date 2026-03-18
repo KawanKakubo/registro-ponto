@@ -19,9 +19,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Route model binding: employees routes agora usam Person
-        \Illuminate\Support\Facades\Route::model('employee', \App\Models\Person::class);
-        \Illuminate\Support\Facades\Route::model('person', \App\Models\Person::class);
-        \Illuminate\Support\Facades\Route::model('registration', \App\Models\EmployeeRegistration::class);
+        //
     }
 }
